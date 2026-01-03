@@ -11,7 +11,7 @@ router.use(protect);
 router.get('/stats/overview', orderController.getOrderStats);
 
 // Update order status
-router.patch('/:id/status', authorize('Admin', 'Manager'), orderController.updateOrderStatus);
+router.patch('/:id/status', authorize('ADMIN', 'INVENTORY_MANAGER'), orderController.updateOrderStatus);
 
 // Routes
 router
@@ -22,7 +22,7 @@ router
 router
   .route('/:id')
   .get(orderController.getOrder)
-  .put(authorize('Admin', 'Manager'), orderController.updateOrder)
-  .delete(authorize('Admin'), orderController.deleteOrder);
+  .put(authorize('ADMIN', 'INVENTORY_MANAGER'), orderController.updateOrder)
+  .delete(authorize('ADMIN'), orderController.deleteOrder);
 
 module.exports = router;

@@ -5,7 +5,10 @@ const User = require('../models/User');
 // @access  Private (Admin, Manager)
 exports.getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select('-password').sort('-createdAt');
+    const users = await User.find()
+      .select('-password')
+      .populate('assignedWarehouse', 'name code')
+      .sort('-createdAt');
 
     res.status(200).json({
       status: 'success',
@@ -22,7 +25,9 @@ exports.getAllUsers = async (req, res, next) => {
 // @access  Private (Admin, Manager)
 exports.getUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id)
+      .select('-password')
+      .populate('assignedWarehouse', 'name code');
 
     if (!user) {
       return res.status(404).json({
@@ -45,7 +50,7 @@ exports.getUser = async (req, res, next) => {
 // @access  Private (Admin)
 exports.createUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, status } = req.body;
+    const { name, email, password, role, status, assignedWarehouse } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -61,8 +66,12 @@ exports.createUser = async (req, res, next) => {
       email,
       password,
       role,
-      status
+      status,
+      assignedWarehouse: assignedWarehouse || undefined
     });
+
+    // Populate assignedWarehouse before sending response
+    await user.populate('assignedWarehouse', 'name code');
 
     res.status(201).json({
       status: 'success',
@@ -99,6 +108,9 @@ exports.updateUser = async (req, res, next) => {
     }
 
     await user.save();
+
+    // Populate assignedWarehouse before sending response
+    await user.populate('assignedWarehouse', 'name code');
 
     res.status(200).json({
       status: 'success',

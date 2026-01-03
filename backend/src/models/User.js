@@ -23,8 +23,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['Admin', 'Manager', 'Staff'],
-    default: 'Staff'
+    enum: ['ADMIN', 'INVENTORY_MANAGER', 'WAREHOUSE_STAFF'],
+    default: 'WAREHOUSE_STAFF'
+  },
+  assignedWarehouse: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Warehouse'
   },
   status: {
     type: String,

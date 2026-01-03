@@ -11,6 +11,13 @@ const productRoutes = require('./routes/productRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
+const skuRoutes = require('./routes/skuRoutes');
+const warehouseRoutes = require('./routes/warehouseRoutes');
+const prRoutes = require('./routes/prRoutes');
+const poRoutes = require('./routes/poRoutes');
+const transferRoutes = require('./routes/transferRoutes');
+const reorderRoutes = require('./routes/reorderRoutes');
+const stockLedgerRoutes = require('./routes/stockLedgerRoutes');
 
 // Initialize express app
 const app = express();
@@ -43,6 +50,13 @@ app.use('/api/products', productRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/skus', skuRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/purchase-requisitions', prRoutes);
+app.use('/api/purchase-orders', poRoutes);
+app.use('/api/transfers', transferRoutes);
+app.use('/api/reorder', reorderRoutes);
+app.use('/api/stock-ledger', stockLedgerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

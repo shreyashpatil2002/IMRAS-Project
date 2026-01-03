@@ -35,10 +35,19 @@ const orderSchema = new mongoose.Schema({
       ref: 'Product',
       required: true
     },
+    sku: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SKU'
+    },
     quantity: {
       type: Number,
       required: true,
       min: 1
+    },
+    reservedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0
     },
     price: {
       type: Number,
@@ -50,6 +59,10 @@ const orderSchema = new mongoose.Schema({
       ref: 'Batch'
     }
   }],
+  warehouse: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Warehouse'
+  },
   totalAmount: {
     type: Number,
     required: true,
@@ -57,8 +70,8 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
-    default: 'Pending'
+    enum: ['PENDING', 'RESERVED', 'PICKED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CLOSED', 'CANCELLED'],
+    default: 'PENDING'
   },
   paymentStatus: {
     type: String,

@@ -36,6 +36,24 @@ const supplierSchema = new mongoose.Schema({
     enum: ['Electronics', 'Accessories', 'Office', 'Other'],
     default: 'Other'
   },
+  leadTime: {
+    type: Number,
+    default: 7,
+    min: 0,
+    comment: 'Lead time in days'
+  },
+  pricingTiers: [{
+    minQty: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    pricePerUnit: {
+      type: Number,
+      required: true,
+      min: 0
+    }
+  }],
   status: {
     type: String,
     enum: ['Active', 'Inactive'],

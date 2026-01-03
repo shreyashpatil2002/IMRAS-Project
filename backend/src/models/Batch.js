@@ -4,7 +4,6 @@ const batchSchema = new mongoose.Schema({
   batchNumber: {
     type: String,
     required: [true, 'Batch number is required'],
-    unique: true,
     uppercase: true,
     trim: true
   },
@@ -36,6 +35,11 @@ const batchSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Location is required'],
     trim: true
+  },
+  warehouse: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Warehouse',
+    required: [true, 'Warehouse is required']
   },
   supplier: {
     type: mongoose.Schema.Types.ObjectId,
@@ -76,5 +80,8 @@ batchSchema.pre('save', function(next) {
   }
   next();
 });
+
+// Compound unique index: same batch number can exist in different warehouses
+batchSchema.index({ batchNumber: 1, warehouse: 1 }, { unique: true });
 
 module.exports = mongoose.model('Batch', batchSchema);

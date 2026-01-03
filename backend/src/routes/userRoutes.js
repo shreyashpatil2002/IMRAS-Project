@@ -10,13 +10,13 @@ router.use(protect);
 // Routes
 router
   .route('/')
-  .get(authorize('Admin', 'Manager'), userController.getAllUsers)
-  .post(authorize('Admin'), userController.createUser);
+  .get(authorize('ADMIN', 'INVENTORY_MANAGER'), userController.getAllUsers)
+  .post(authorize('ADMIN'), userController.createUser);
 
 router
   .route('/:id')
-  .get(authorize('Admin', 'Manager'), userController.getUser)
-  .put(authorize('Admin'), userController.updateUser)
-  .delete(authorize('Admin'), userController.deleteUser);
+  .get(authorize('ADMIN', 'INVENTORY_MANAGER'), userController.getUser)
+  .put(authorize('ADMIN'), userController.updateUser)
+  .delete(authorize('ADMIN'), userController.deleteUser);
 
 module.exports = router;

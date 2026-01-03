@@ -11,12 +11,12 @@ router.use(protect);
 router
   .route('/')
   .get(supplierController.getAllSuppliers)
-  .post(authorize('Admin', 'Manager'), supplierController.createSupplier);
+  .post(authorize('ADMIN', 'INVENTORY_MANAGER'), supplierController.createSupplier);
 
 router
   .route('/:id')
   .get(supplierController.getSupplier)
-  .put(authorize('Admin', 'Manager'), supplierController.updateSupplier)
-  .delete(authorize('Admin'), supplierController.deleteSupplier);
+  .put(authorize('ADMIN', 'INVENTORY_MANAGER'), supplierController.updateSupplier)
+  .delete(authorize('ADMIN'), supplierController.deleteSupplier);
 
 module.exports = router;

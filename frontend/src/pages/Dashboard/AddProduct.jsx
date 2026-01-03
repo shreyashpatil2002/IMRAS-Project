@@ -1,24 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
+import productService from '../../services/productService';
+import supplierService from '../../services/supplierService';
+import { useNavigate } from 'react-router-dom';
 
 const AddProduct = () => {
+  const navigate = useNavigate();
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    productName: '',
+    name: '',
     sku: '',
-    category: '',
-    quantity: '',
-    unit: '',
+    category: 'Electronics',
+    description: '',
+    unit: 'pieces',
     price: '',
     supplier: '',
-    location: '',
+    minStock: '',
+    maxStock: '',
     reorderPoint: '',
-    description: ''
+    status: 'Active'
   });
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      const response = await supplierService.getAllSuppliers();
+      const suppliersData = response.data?.suppliers || response.data || [];
+      setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Product added:', formData);
-    // Handle product addition logic
+    setLoading(true);
+    try {
+      const productData = {
+        name: formData.name,
+        sku: formData.sku,
+        category: formData.category,
+        description: formData.description,
+        unit: formData.unit,
+        price: parseFloat(formData.price),
+        supplier: formData.supplier || undefined,
+        minStock: parseInt(formData.minStock),
+        maxStock: parseInt(formData.maxStock),
+        reorderPoint: parseInt(formData.reorderPoint),
+        status: formData.status
+      };
+
+      await productService.createProduct(productData);
+      alert('Product added successfully!');
+      navigate('/dashboard/inventory');
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert(error.response?.data?.message || 'Failed to add product');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -47,9 +91,9 @@ const AddProduct = () => {
                 </label>
                 <input
                   type="text"
-                  name="productName"
+                  name="name"
                   required
-                  value={formData.productName}
+                  value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="Enter product name"
@@ -82,45 +126,28 @@ const AddProduct = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="">Select category</option>
-                  <option value="electronics">Electronics</option>
-                  <option value="components">Components</option>
-                  <option value="accessories">Accessories</option>
-                  <option value="tools">Tools</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Accessories">Accessories</option>
+                  <option value="Office">Office</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Supplier *
+                  Supplier
                 </label>
                 <select
                   name="supplier"
-                  required
                   value={formData.supplier}
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="">Select supplier</option>
-                  <option value="supplier1">Acme Corp</option>
-                  <option value="supplier2">Tech Supplies Inc</option>
-                  <option value="supplier3">Global Parts Ltd</option>
+                  <option value="">Select supplier (optional)</option>
+                  {suppliers.map(supplier => (
+                    <option key={supplier._id} value={supplier._id}>{supplier.name}</option>
+                  ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Quantity *
-                </label>
-                <input
-                  type="number"
-                  name="quantity"
-                  required
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="0"
-                />
               </div>
 
               <div>
@@ -134,11 +161,11 @@ const AddProduct = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="">Select unit</option>
                   <option value="pieces">Pieces</option>
                   <option value="boxes">Boxes</option>
                   <option value="pallets">Pallets</option>
                   <option value="kg">Kilograms</option>
+                  <option value="meters">Meters</option>
                 </select>
               </div>
 
@@ -160,6 +187,36 @@ const AddProduct = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Min Stock *
+                </label>
+                <input
+                  type="number"
+                  name="minStock"
+                  required
+                  value={formData.minStock}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Minimum stock level"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Max Stock *
+                </label>
+                <input
+                  type="number"
+                  name="maxStock"
+                  required
+                  value={formData.maxStock}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Maximum stock level"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Reorder Point *
                 </label>
                 <input
@@ -169,22 +226,25 @@ const AddProduct = () => {
                   value={formData.reorderPoint}
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Minimum quantity threshold"
+                  placeholder="Reorder threshold"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Location
+                  Status *
                 </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
+                <select
+                  name="status"
+                  required
+                  value={formData.status}
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Warehouse location"
-                />
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Discontinued">Discontinued</option>
+                </select>
               </div>
             </div>
 
@@ -194,26 +254,28 @@ const AddProduct = () => {
               </label>
               <textarea
                 name="description"
-                rows="4"
                 value={formData.description}
                 onChange={handleChange}
+                rows="4"
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Product description and notes"
+                placeholder="Enter product description (optional)"
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                className="flex-1 md:flex-none md:px-8 h-11 flex items-center justify-center rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg transition-all"
-              >
-                Add Product
-              </button>
+            <div className="flex gap-4 pt-4">
               <button
                 type="button"
-                className="flex-1 md:flex-none md:px-8 h-11 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#0d121b] dark:text-white font-bold text-sm transition-all"
+                onClick={() => navigate('/dashboard/inventory')}
+                className="flex-1 px-6 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-all"
               >
                 Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Adding Product...' : 'Add Product'}
               </button>
             </div>
           </form>

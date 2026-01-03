@@ -22,6 +22,7 @@ exports.getAllBatches = async (req, res, next) => {
     const batches = await Batch.find(query)
       .populate('product', 'name sku category')
       .populate('supplier', 'name email phone')
+      .populate('warehouse', 'name code location')
       .sort('-createdAt');
 
     res.status(200).json({
@@ -41,7 +42,8 @@ exports.getBatch = async (req, res, next) => {
   try {
     const batch = await Batch.findById(req.params.id)
       .populate('product', 'name sku category image')
-      .populate('supplier', 'name email phone address');
+      .populate('supplier', 'name email phone address')
+      .populate('warehouse', 'name code location address');
 
     if (!batch) {
       return res.status(404).json({
@@ -100,17 +102,56 @@ exports.createBatch = async (req, res, next) => {
 // @access  Private (Admin, Manager)
 exports.updateBatch = async (req, res, next) => {
   try {
-    const batch = await Batch.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const batch = await Batch.findById(req.params.id).populate('product');
 
     if (!batch) {
       return res.status(404).json({
         status: 'error',
         message: 'Batch not found'
       });
+    }
+
+    const oldLocation = batch.location;
+    const newLocation = req.body.location;
+
+    // Check if this is a putaway operation (location change from RECEIVING)
+    const isPutaway = newLocation && 
+                      oldLocation && 
+                      oldLocation.startsWith('RECEIVING') && 
+                      !newLocation.startsWith('RECEIVING');
+
+    // Update batch
+    Object.assign(batch, req.body);
+    await batch.save();
+
+    // If putaway, update the location in the most recent stock ledger entry for this batch
+    if (isPutaway) {
+      const StockLedger = require('../models/StockLedger');
+      
+      // Parse the new location
+      const locationParts = newLocation.split('-');
+      const locationObj = {
+        aisle: locationParts[0],
+        bin: locationParts.length > 2 ? locationParts[2] : locationParts[1]
+      };
+
+      // Find the most recent stock ledger entry for this batch and warehouse
+      const ledgerEntry = await StockLedger.findOne({
+        batchNumber: batch.batchNumber,
+        warehouse: batch.warehouse,
+        movementType: { $in: ['INWARD', 'TRANSFER_IN'] }
+      }).sort({ transactionDate: -1 });
+
+      if (ledgerEntry) {
+        // Update the location in the existing entry
+        ledgerEntry.location = locationObj;
+        ledgerEntry.remarks = ledgerEntry.remarks 
+          ? `${ledgerEntry.remarks} | Putaway: ${newLocation}` 
+          : `Putaway: Moved to ${newLocation}`;
+        await ledgerEntry.save();
+        
+        console.log(`Updated stock ledger location for batch ${batch.batchNumber} to ${newLocation}`);
+      }
     }
 
     res.status(200).json({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import batchService from '../../services/batchService';
+import authService from '../../services/authService';
 
 const BatchTracking = () => {
   const [batches, setBatches] = useState([]);
@@ -12,6 +13,7 @@ const BatchTracking = () => {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showNewBatchModal, setShowNewBatchModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [user, setUser] = useState(null);
   const [batchFormData, setBatchFormData] = useState({
     product: '',
     sku: '',
@@ -31,19 +33,41 @@ const BatchTracking = () => {
   });
 
   useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    setUser(currentUser);
     fetchBatches();
-    fetchStats();
-  }, [filterStatus]);
+  }, [filterStatus, searchQuery]);
 
   const fetchBatches = async () => {
     try {
       setLoading(true);
+      const currentUser = authService.getCurrentUser();
       const params = {};
       if (filterStatus !== 'all') params.status = filterStatus;
       if (searchQuery) params.search = searchQuery;
       
       const response = await batchService.getAllBatches(params);
-      setBatches(response.data.batches);
+      let batchData = response.data?.batches || response.batches || [];
+      
+      // Filter by assigned warehouse for non-admin users
+      if (currentUser?.role !== 'ADMIN' && currentUser?.assignedWarehouse) {
+        batchData = batchData.filter(batch => {
+          const batchWarehouseId = batch.warehouse?._id || batch.warehouse;
+          return batchWarehouseId === currentUser.assignedWarehouse;
+        });
+      }
+      
+      setBatches(batchData);
+      
+      // Calculate stats from fetched data
+      const statsData = {
+        totalBatches: batchData.length,
+        active: batchData.filter(b => b.status === 'Active').length,
+        lowStock: batchData.filter(b => b.status === 'Low Stock').length,
+        expiringSoon: batchData.filter(b => b.status === 'Expiring Soon').length,
+        depleted: batchData.filter(b => b.status === 'Depleted').length
+      };
+      setStats(statsData);
       setError('');
     } catch (err) {
       setError(err.message || 'Failed to load batches');
@@ -52,13 +76,26 @@ const BatchTracking = () => {
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const response = await batchService.getBatchStats();
-      setStats(response.data.stats);
-    } catch (err) {
-      console.error('Failed to load stats:', err);
-    }
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const getDaysUntilExpiry = (expiryDate) => {
+    if (!expiryDate) return null;
+    const now = new Date();
+    const expiry = new Date(expiryDate);
+    const days = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    return days;
+  };
+
+  const getExpiryText = (days) => {
+    if (days === null) return 'N/A';
+    if (days < 0) return `Expired ${Math.abs(days)} days ago`;
+    if (days === 0) return 'Expires today';
+    if (days === 1) return 'Expires tomorrow';
+    return `${days} days`;
   };
 
   const handleAdjustQuantity = async (e) => {
@@ -72,7 +109,6 @@ const BatchTracking = () => {
       setShowAdjustModal(false);
       setAdjustData({ batchId: null, adjustment: '', reason: '', notes: '' });
       fetchBatches();
-      fetchStats();
     } catch (err) {
       setError(err.message || 'Failed to adjust quantity');
     }
@@ -205,9 +241,9 @@ const BatchTracking = () => {
               >
                 <option value="all">All Status</option>
                 <option value="Active">Active</option>
-                <option value="Low">Low Stock</option>
-                <option value="Critical">Critical</option>
+                <option value="Low Stock">Low Stock</option>
                 <option value="Expiring Soon">Expiring Soon</option>
+                <option value="Expired">Expired</option>
                 <option value="Depleted">Depleted</option>
               </select>
             </div>
@@ -247,105 +283,137 @@ const BatchTracking = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {batches.map((batch) => (
-                  <tr key={batch.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-[#0d121b] dark:text-white mb-1">
-                          {batch.batchNumber}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[14px] text-gray-400">
-                            qr_code_2
-                          </span>
-                          <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                            {batch.qrCode}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-[#0d121b] dark:text-white">
-                          {batch.product}
-                        </span>
-                        <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded mt-1 inline-block w-fit">
-                          {batch.sku}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">
-                        {batch.receivedDate}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">
-                        {batch.expiryDate}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px] text-gray-400">
-                          location_on
-                        </span>
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {batch.location}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-[#0d121b] dark:text-white">
-                            {batch.quantity} / {batch.initialQuantity}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full ${
-                              getStockPercentage(batch.quantity, batch.initialQuantity) > 50
-                                ? 'bg-green-500'
-                                : getStockPercentage(batch.quantity, batch.initialQuantity) > 20
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                            }`}
-                            style={{ width: `${getStockPercentage(batch.quantity, batch.initialQuantity)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(batch.status)}`}>
-                        {batch.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setSelectedBatch(batch)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary transition-colors"
-                          title="View Details"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">visibility</span>
-                        </button>
-                        <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors" title="Print Label">
-                          <span className="material-symbols-outlined text-[20px]">print</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setAdjustData({ ...adjustData, batchId: batch.id });
-                            setShowAdjustModal(true);
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
-                          title="Adjust Quantity"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </button>
-                      </div>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading batches...</p>
                     </td>
                   </tr>
-                ))}
+                ) : batches.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                      No batches found
+                    </td>
+                  </tr>
+                ) : (
+                  batches.map((batch) => {
+                    const daysToExpiry = getDaysUntilExpiry(batch.expiryDate);
+                    return (
+                      <tr key={batch._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-[#0d121b] dark:text-white mb-1">
+                              {batch.batchNumber}
+                            </span>
+                            {batch.qrCode && (
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[14px] text-gray-400">
+                                  qr_code_2
+                                </span>
+                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                  {batch.qrCode}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-[#0d121b] dark:text-white">
+                              {batch.product?.name || 'N/A'}
+                            </span>
+                            {batch.product?.sku && (
+                              <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded mt-1 inline-block w-fit">
+                                {batch.product.sku}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {formatDate(batch.receivedDate)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">
+                              {formatDate(batch.expiryDate)}
+                            </span>
+                            <span className={`text-xs mt-1 ${
+                              daysToExpiry < 0 ? 'text-red-600 dark:text-red-400' :
+                              daysToExpiry <= 30 ? 'text-orange-600 dark:text-orange-400' :
+                              daysToExpiry <= 90 ? 'text-yellow-600 dark:text-yellow-400' :
+                              'text-green-600 dark:text-green-400'
+                            }`}>
+                              {getExpiryText(daysToExpiry)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px] text-gray-400">
+                              location_on
+                            </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-300">
+                              {batch.location}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-[#0d121b] dark:text-white">
+                                {batch.currentQuantity} / {batch.initialQuantity}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${
+                                  getStockPercentage(batch.currentQuantity, batch.initialQuantity) > 50
+                                    ? 'bg-green-500'
+                                    : getStockPercentage(batch.currentQuantity, batch.initialQuantity) > 20
+                                    ? 'bg-yellow-500'
+                                    : 'bg-red-500'
+                                }`}
+                                style={{ width: `${getStockPercentage(batch.currentQuantity, batch.initialQuantity)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(batch.status)}`}>
+                            {batch.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedBatch(batch)}
+                              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary transition-colors"
+                              title="View Details"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                            <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors" title="Print Label">
+                              <span className="material-symbols-outlined text-[20px]">print</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setAdjustData({ ...adjustData, batchId: batch._id });
+                                setShowAdjustModal(true);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
+                              title="Adjust Quantity"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">edit</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -378,7 +446,7 @@ const BatchTracking = () => {
                       Product Name
                     </p>
                     <p className="text-base font-semibold text-[#0d121b] dark:text-white">
-                      {selectedBatch.product}
+                      {selectedBatch.product?.name || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -386,7 +454,7 @@ const BatchTracking = () => {
                       SKU
                     </p>
                     <p className="text-base font-mono font-semibold text-[#0d121b] dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded inline-block">
-                      {selectedBatch.sku}
+                      {selectedBatch.product?.sku || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -394,7 +462,7 @@ const BatchTracking = () => {
                       QR Code
                     </p>
                     <p className="text-base font-mono text-[#0d121b] dark:text-white">
-                      {selectedBatch.qrCode}
+                      {selectedBatch.qrCode || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -402,7 +470,7 @@ const BatchTracking = () => {
                       Supplier
                     </p>
                     <p className="text-base text-[#0d121b] dark:text-white">
-                      {selectedBatch.supplier}
+                      {selectedBatch.supplier?.name || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -410,7 +478,7 @@ const BatchTracking = () => {
                       Received Date
                     </p>
                     <p className="text-base text-[#0d121b] dark:text-white">
-                      {selectedBatch.receivedDate}
+                      {formatDate(selectedBatch.receivedDate)}
                     </p>
                   </div>
                   <div>
@@ -418,7 +486,14 @@ const BatchTracking = () => {
                       Expiry Date
                     </p>
                     <p className="text-base text-[#0d121b] dark:text-white">
-                      {selectedBatch.expiryDate}
+                      {formatDate(selectedBatch.expiryDate)}
+                      <span className={`block text-xs mt-1 ${
+                        getDaysUntilExpiry(selectedBatch.expiryDate) < 0 ? 'text-red-600' :
+                        getDaysUntilExpiry(selectedBatch.expiryDate) <= 30 ? 'text-orange-600' :
+                        'text-green-600'
+                      }`}>
+                        {getExpiryText(getDaysUntilExpiry(selectedBatch.expiryDate))}
+                      </span>
                     </p>
                   </div>
                   <div>
@@ -445,7 +520,7 @@ const BatchTracking = () => {
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Current Quantity</span>
-                      <span className="text-lg font-bold text-[#0d121b] dark:text-white">{selectedBatch.quantity}</span>
+                      <span className="text-lg font-bold text-[#0d121b] dark:text-white">{selectedBatch.currentQuantity}</span>
                     </div>
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Initial Quantity</span>
@@ -454,17 +529,17 @@ const BatchTracking = () => {
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className={`h-2 rounded-full ${
-                          getStockPercentage(selectedBatch.quantity, selectedBatch.initialQuantity) > 50
+                          getStockPercentage(selectedBatch.currentQuantity, selectedBatch.initialQuantity) > 50
                             ? 'bg-green-500'
-                            : getStockPercentage(selectedBatch.quantity, selectedBatch.initialQuantity) > 20
+                            : getStockPercentage(selectedBatch.currentQuantity, selectedBatch.initialQuantity) > 20
                             ? 'bg-yellow-500'
                             : 'bg-red-500'
                         }`}
-                        style={{ width: `${getStockPercentage(selectedBatch.quantity, selectedBatch.initialQuantity)}%` }}
+                        style={{ width: `${getStockPercentage(selectedBatch.currentQuantity, selectedBatch.initialQuantity)}%` }}
                       ></div>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      {getStockPercentage(selectedBatch.quantity, selectedBatch.initialQuantity).toFixed(1)}% remaining
+                      {getStockPercentage(selectedBatch.currentQuantity, selectedBatch.initialQuantity).toFixed(1)}% remaining
                     </p>
                   </div>
                 </div>
@@ -474,8 +549,9 @@ const BatchTracking = () => {
                   </button>
                   <button
                     onClick={() => {
-                      setAdjustData({ ...adjustData, batchId: selectedBatch.id });
+                      setAdjustData({ ...adjustData, batchId: selectedBatch._id });
                       setShowAdjustModal(true);
+                      setSelectedBatch(null);
                     }}
                     className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors"
                   >

@@ -9,7 +9,7 @@ const SignUp = () => {
     fullName: '',
     email: '',
     companyName: '',
-    role: 'Staff',
+    role: 'WAREHOUSE_STAFF',
     password: '',
     confirmPassword: '',
     agreeToTerms: false
@@ -219,9 +219,9 @@ const SignUp = () => {
                   value={formData.role}
                   onChange={handleChange}
                 >
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Staff">Staff</option>
+                  <option value="WAREHOUSE_STAFF">Warehouse Staff</option>
+                  <option value="INVENTORY_MANAGER">Inventory Manager</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px] pointer-events-none">
                   arrow_drop_down

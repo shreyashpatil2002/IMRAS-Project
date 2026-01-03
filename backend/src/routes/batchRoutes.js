@@ -11,18 +11,18 @@ router.use(protect);
 router.get('/stats/overview', batchController.getBatchStats);
 
 // Adjust quantity route
-router.patch('/:id/adjust', authorize('Admin', 'Manager'), batchController.adjustBatchQuantity);
+router.patch('/:id/adjust', authorize('ADMIN', 'INVENTORY_MANAGER'), batchController.adjustBatchQuantity);
 
 // Routes
 router
   .route('/')
   .get(batchController.getAllBatches)
-  .post(authorize('Admin', 'Manager'), batchController.createBatch);
+  .post(authorize('ADMIN', 'INVENTORY_MANAGER'), batchController.createBatch);
 
 router
   .route('/:id')
   .get(batchController.getBatch)
-  .put(authorize('Admin', 'Manager'), batchController.updateBatch)
-  .delete(authorize('Admin'), batchController.deleteBatch);
+  .put(authorize('ADMIN', 'INVENTORY_MANAGER', 'WAREHOUSE_STAFF'), batchController.updateBatch)
+  .delete(authorize('ADMIN'), batchController.deleteBatch);
 
 module.exports = router;

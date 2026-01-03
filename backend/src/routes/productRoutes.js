@@ -14,12 +14,12 @@ router.get('/stats/overview', productController.getProductStats);
 router
   .route('/')
   .get(productController.getAllProducts)
-  .post(authorize('Admin', 'Manager'), productController.createProduct);
+  .post(authorize('ADMIN', 'INVENTORY_MANAGER'), productController.createProduct);
 
 router
   .route('/:id')
   .get(productController.getProduct)
-  .put(authorize('Admin', 'Manager'), productController.updateProduct)
-  .delete(authorize('Admin'), productController.deleteProduct);
+  .put(authorize('ADMIN', 'INVENTORY_MANAGER'), productController.updateProduct)
+  .delete(authorize('ADMIN'), productController.deleteProduct);
 
 module.exports = router;
