@@ -3,6 +3,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import skuService from '../../services/skuService';
 import warehouseService from '../../services/warehouseService';
 import supplierService from '../../services/supplierService';
+import authService from '../../services/authService';
 
 const SKUManagement = () => {
   const [skus, setSKUs] = useState([]);
@@ -14,6 +15,7 @@ const SKUManagement = () => {
   const [selectedSKU, setSelectedSKU] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [user, setUser] = useState(null);
   
   const [formData, setFormData] = useState({
     skuCode: '',
@@ -37,6 +39,8 @@ const SKUManagement = () => {
   const statuses = ['ACTIVE', 'INACTIVE', 'DISCONTINUED'];
 
   useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    setUser(currentUser);
     fetchData();
   }, [searchTerm, categoryFilter]);
 
@@ -236,7 +240,6 @@ const SKUManagement = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Min/Max Stock</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Unit Cost</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Warehouse</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -244,7 +247,7 @@ const SKUManagement = () => {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {skus.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No SKUs found. Click "Add New SKU" to create one.
                     </td>
                   </tr>
@@ -256,7 +259,6 @@ const SKUManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{sku.category.replace('_', ' ')}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{sku.minStock} / {sku.maxStock}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${sku.unitCost?.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{sku.defaultWarehouse?.name || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(sku)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
@@ -265,12 +267,14 @@ const SKUManagement = () => {
                         >
                           Edit
                         </button>
-                        <button
-                          onClick={() => handleDelete(sku._id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
+                        {user?.role === 'ADMIN' && (
+                          <button
+                            onClick={() => handleDelete(sku._id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

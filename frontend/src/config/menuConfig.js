@@ -18,9 +18,14 @@ export const menuConfig = {
         title: 'Warehouse Operations',
         items: [
           {
-            path: '/dashboard/goods-receipt',
-            label: 'Goods Receipt (GRN)',
+            path: '/dashboard/inbound-receipts',
+            label: 'Inbound Receipts',
             icon: 'local_shipping'
+          },
+          {
+            path: '/dashboard/outbound-dispatch',
+            label: 'Outbound Dispatch',
+            icon: 'outbox'
           },
           {
             path: '/dashboard/putaway',
@@ -106,6 +111,16 @@ export const menuConfig = {
         ]
       },
       {
+        title: 'Sales & Orders',
+        items: [
+          {
+            path: '/dashboard/orders',
+            label: 'Sales Orders',
+            icon: 'shopping_cart'
+          }
+        ]
+      },
+      {
         title: 'Oversight',
         items: [
           {
@@ -168,6 +183,21 @@ export const menuConfig = {
             path: '/dashboard/suppliers',
             label: 'Suppliers',
             icon: 'storefront'
+          }
+        ]
+      },
+      {
+        title: 'Sales & Orders',
+        items: [
+          {
+            path: '/dashboard/orders',
+            label: 'Sales Orders',
+            icon: 'shopping_cart'
+          },
+          {
+            path: '/dashboard/customers',
+            label: 'Customers',
+            icon: 'people'
           }
         ]
       },

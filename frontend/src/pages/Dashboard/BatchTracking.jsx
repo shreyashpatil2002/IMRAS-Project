@@ -269,7 +269,7 @@ const BatchTracking = () => {
                     Expiry Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Location
+                    Warehouse & Location
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Quantity
@@ -350,14 +350,24 @@ const BatchTracking = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[16px] text-gray-400">
-                              location_on
-                            </span>
-                            <span className="text-sm text-gray-600 dark:text-gray-300">
-                              {batch.location}
-                            </span>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[16px] text-blue-600 dark:text-blue-400">
+                                warehouse
+                              </span>
+                              <span className="text-sm font-medium text-[#0d121b] dark:text-white">
+                                {batch.warehouse?.name || 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[16px] text-gray-400">
+                                location_on
+                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-300">
+                                {batch.location}
+                              </span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -498,11 +508,26 @@ const BatchTracking = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      Location
+                      Warehouse & Location
                     </p>
-                    <p className="text-base text-[#0d121b] dark:text-white">
-                      {selectedBatch.location}
-                    </p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-blue-600 dark:text-blue-400">
+                          warehouse
+                        </span>
+                        <span className="text-base font-medium text-[#0d121b] dark:text-white">
+                          {selectedBatch.warehouse?.name || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-gray-400">
+                          location_on
+                        </span>
+                        <span className="text-base text-[#0d121b] dark:text-white">
+                          {selectedBatch.location}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">

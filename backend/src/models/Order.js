@@ -3,65 +3,50 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
-    required: [true, 'Order number is required'],
     unique: true,
     uppercase: true,
     trim: true
   },
   customer: {
-    name: {
-      type: String,
-      required: [true, 'Customer name is required'],
-      trim: true
-    },
-    email: {
-      type: String,
-      required: [true, 'Customer email is required'],
-      lowercase: true,
-      trim: true
-    },
-    phone: {
-      type: String,
-      trim: true
-    },
-    address: {
-      type: String,
-      trim: true
-    }
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
+    required: [true, 'Customer is required']
   },
   items: [{
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
-    },
     sku: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'SKU'
+      ref: 'SKU',
+      required: true
+    },
+    batch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Batch'
     },
     quantity: {
       type: Number,
       required: true,
       min: 1
     },
-    reservedQuantity: {
+    pickedQuantity: {
       type: Number,
       default: 0,
       min: 0
     },
-    price: {
+    unitPrice: {
       type: Number,
       required: true,
       min: 0
     },
-    batch: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Batch'
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0
     }
   }],
   warehouse: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Warehouse'
+    ref: 'Warehouse',
+    required: [true, 'Warehouse is required']
   },
   totalAmount: {
     type: Number,
@@ -70,15 +55,26 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'RESERVED', 'PICKED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CLOSED', 'CANCELLED'],
+    enum: ['PENDING', 'CONFIRMED', 'PICKING', 'PICKED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
     default: 'PENDING'
   },
   paymentStatus: {
     type: String,
-    enum: ['Pending', 'Paid', 'Refunded'],
-    default: 'Pending'
+    enum: ['PENDING', 'PAID', 'REFUNDED', 'PARTIAL'],
+    default: 'PENDING'
+  },
+  shippingAddress: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
   },
   shippingMethod: {
+    type: String,
+    trim: true
+  },
+  trackingNumber: {
     type: String,
     trim: true
   },
@@ -90,18 +86,70 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  confirmedDate: {
+    type: Date
+  },
+  pickedDate: {
+    type: Date
+  },
+  packedDate: {
+    type: Date
+  },
   shippedDate: {
     type: Date
   },
   deliveredDate: {
     type: Date
   },
+  cancelledDate: {
+    type: Date
+  },
+  cancelReason: {
+    type: String,
+    trim: true
+  },
   createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approvedDate: {
+    type: Date
+  },
+  pickedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  packedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  shippedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }
 }, {
   timestamps: true
 });
+
+// Auto-generate order number
+orderSchema.pre('save', async function(next) {
+  if (!this.orderNumber) {
+    const count = await mongoose.model('Order').countDocuments();
+    this.orderNumber = `SO${String(count + 1).padStart(6, '0')}`;
+  }
+  next();
+});
+
+// Indexes
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ customer: 1 });
+orderSchema.index({ warehouse: 1 });
+orderSchema.index({ orderDate: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

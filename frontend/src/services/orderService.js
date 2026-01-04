@@ -23,8 +23,8 @@ const orderService = {
   },
 
   // Update order status
-  updateOrderStatus: async (id, status) => {
-    return await api.patch(`/orders/${id}/status`, { status });
+  updateOrderStatus: async (id, status, additionalData = {}) => {
+    return await api.patch(`/orders/${id}/status`, { status, ...additionalData });
   },
 
   // Delete order
@@ -35,6 +35,11 @@ const orderService = {
   // Get order statistics
   getOrderStats: async () => {
     return await api.get('/orders/stats/overview');
+  },
+
+  // Get available batches for picking (FEFO)
+  getAvailableBatches: async (id) => {
+    return await api.get(`/orders/${id}/available-batches`);
   }
 };
 

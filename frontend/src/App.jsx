@@ -18,6 +18,8 @@ import AddProduct from './pages/Dashboard/AddProduct';
 import InventoryList from './pages/Dashboard/InventoryList';
 import BatchTracking from './pages/Dashboard/BatchTracking';
 import Orders from './pages/Dashboard/Orders';
+import Customers from './pages/Dashboard/Customers';
+import Dispatch from './pages/Dashboard/Dispatch';
 import ProductDetails from './pages/Dashboard/ProductDetails';
 import Reports from './pages/Dashboard/Reports';
 import Suppliers from './pages/Dashboard/Suppliers';
@@ -57,12 +59,14 @@ function App() {
         <Route path="/dashboard/purchase-requisitions" element={<ProtectedRoute><PurchaseRequisitions /></ProtectedRoute>} />
         <Route path="/dashboard/purchase-orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
         <Route path="/dashboard/transfers" element={<ProtectedRoute><WarehouseTransfers /></ProtectedRoute>} />
-        <Route path="/dashboard/goods-receipt" element={<ProtectedRoute><GoodsReceipt /></ProtectedRoute>} />
+        <Route path="/dashboard/inbound-receipts" element={<ProtectedRoute><GoodsReceipt /></ProtectedRoute>} />
         <Route path="/dashboard/putaway" element={<ProtectedRoute><Putaway /></ProtectedRoute>} />
         <Route path="/dashboard/my-activity" element={<ProtectedRoute><MyActivity /></ProtectedRoute>} />
         <Route path="/dashboard/reorder-suggestions" element={<ProtectedRoute><ReorderSuggestions /></ProtectedRoute>} />
         <Route path="/dashboard/add-product" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
         <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/dashboard/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+        <Route path="/dashboard/outbound-dispatch" element={<ProtectedRoute><Dispatch /></ProtectedRoute>} />
         <Route path="/dashboard/product-details" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
         <Route path="/dashboard/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/dashboard/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />

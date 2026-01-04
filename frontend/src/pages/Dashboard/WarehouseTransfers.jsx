@@ -84,10 +84,14 @@ const WarehouseTransfers = () => {
   const fetchBatchesForSKU = async (itemIndex, skuId) => {
     if (!skuId || !formData.sourceWarehouse) return;
     
+    console.log(`Fetching batches for SKU ${skuId} in warehouse ${formData.sourceWarehouse}`);
+    
     try {
       setLoadingBatches(prev => ({ ...prev, [itemIndex]: true }));
       const response = await batchService.getAllBatches();
       const batchData = response?.data?.batches || response?.batches || [];
+      
+      console.log(`Total batches fetched: ${batchData.length}`);
       
       // Filter batches by warehouse and SKU
       const filteredBatches = batchData.filter(batch => {
@@ -112,10 +116,15 @@ const WarehouseTransfers = () => {
         const warehouseMatch = String(batchWarehouseId) === String(formData.sourceWarehouse);
         const skuMatch = batchSKUId && String(batchSKUId) === String(skuId);
         const hasQuantity = batch.currentQuantity > 0;
-        const isActive = batch.status === 'Active' || batch.status === 'AVAILABLE';
         
-        return warehouseMatch && skuMatch && hasQuantity && isActive;
+        console.log(`Batch ${batch.batchNumber}: {warehouseMatch: ${warehouseMatch}, skuMatch: ${skuMatch}, hasQuantity: ${hasQuantity}, quantity: ${batch.currentQuantity}}`);
+        
+        // Remove status check - only verify warehouse match, SKU match, and quantity availability
+        // Status field may not always match expected values ('Active' vs 'AVAILABLE')
+        return warehouseMatch && skuMatch && hasQuantity;
       });
+      
+      console.log(`Filtered batches: ${filteredBatches.length}`);
       
       setAvailableBatches(prev => ({ ...prev, [itemIndex]: filteredBatches }));
     } catch (error) {

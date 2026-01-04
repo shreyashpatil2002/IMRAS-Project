@@ -4,6 +4,7 @@ import poService from '../../services/poService';
 import warehouseService from '../../services/warehouseService';
 import transferService from '../../services/transferService';
 import authService from '../../services/authService';
+import batchService from '../../services/batchService';
 
 const GoodsReceipt = () => {
   const [pos, setPOs] = useState([]);
@@ -142,6 +143,25 @@ const GoodsReceipt = () => {
       for (const item of itemsToReceive) {
         if (!item.batchNumber || item.batchNumber.trim() === '') {
           alert(`Batch number is required for ${item.skuCode} - ${item.skuName}`);
+          return;
+        }
+      }
+
+      // Check for duplicate batch numbers in the warehouse
+      const warehouseId = selectedPO.warehouse?._id || selectedPO.warehouse;
+      const batchesResponse = await batchService.getAllBatches();
+      const allBatches = batchesResponse?.data?.batches || batchesResponse?.batches || [];
+      
+      for (const item of itemsToReceive) {
+        const batchNumber = item.batchNumber.trim().toUpperCase();
+        const duplicateBatch = allBatches.find(batch => {
+          const batchWarehouseId = batch.warehouse?._id || batch.warehouse;
+          return batch.batchNumber.toUpperCase() === batchNumber && 
+                 String(batchWarehouseId) === String(warehouseId);
+        });
+        
+        if (duplicateBatch) {
+          alert(`Batch number "${item.batchNumber}" already exists in this warehouse. Please use a different batch number for ${item.skuCode} - ${item.skuName}`);
           return;
         }
       }

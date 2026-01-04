@@ -216,11 +216,47 @@ const PurchaseRequisitions = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const canSubmit = (pr) => pr.status === 'DRAFT';
-  const canApprove = (pr) => pr.status === 'SUBMITTED' && user?.role === 'ADMIN';
-  const canReject = (pr) => pr.status === 'SUBMITTED' && user?.role === 'ADMIN';
-  const canConvert = (pr) => pr.status === 'APPROVED' && (user?.role === 'INVENTORY_MANAGER' || user?.role === 'ADMIN');
-  const canView = (pr) => user?.role === 'INVENTORY_MANAGER' || user?.role === 'ADMIN';
+  // Check if current user is the creator of the PR
+  const isCreator = (pr) => {
+    const prCreatorId = pr.requestedBy?._id || pr.requestedBy;
+    const userId = user?._id || user?.id;
+    const result = String(prCreatorId) === String(userId);
+    console.log('isCreator check:', { prCreatorId, userId, result, prStatus: pr.status, userRole: user?.role });
+    return result;
+  };
+
+  // Everyone can view PRs
+  const canView = (pr) => true;
+  
+  // Only creator manager can submit DRAFT PRs
+  const canSubmit = (pr) => {
+    const result = pr.status === 'DRAFT' && isCreator(pr) && user?.role === 'INVENTORY_MANAGER';
+    console.log('canSubmit:', result, { status: pr.status, isCreator: isCreator(pr), role: user?.role });
+    return result;
+  };
+  
+  // Only admin can approve SUBMITTED PRs
+  const canApprove = (pr) => {
+    const result = pr.status === 'SUBMITTED' && user?.role === 'ADMIN';
+    console.log('canApprove:', result, { status: pr.status, role: user?.role });
+    return result;
+  };
+  
+  // Only admin can reject SUBMITTED PRs
+  const canReject = (pr) => {
+    const result = pr.status === 'SUBMITTED' && user?.role === 'ADMIN';
+    console.log('canReject:', result, { status: pr.status, role: user?.role });
+    return result;
+  };
+  
+  // Admin can convert APPROVED PRs, or creator manager can convert their own APPROVED PRs
+  const canConvert = (pr) => {
+    if (pr.status !== 'APPROVED') return false;
+    if (user?.role === 'ADMIN') return true;
+    if (user?.role === 'INVENTORY_MANAGER' && isCreator(pr)) return true;
+    console.log('canConvert:', false, { status: pr.status, role: user?.role, isCreator: isCreator(pr) });
+    return false;
+  };
 
   console.log('Current User:', user);
   console.log('User Role:', user?.role);

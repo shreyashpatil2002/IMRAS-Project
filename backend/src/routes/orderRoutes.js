@@ -10,8 +10,11 @@ router.use(protect);
 // Stats route
 router.get('/stats/overview', orderController.getOrderStats);
 
+// Get available batches for picking
+router.get('/:id/available-batches', orderController.getAvailableBatches);
+
 // Update order status
-router.patch('/:id/status', authorize('ADMIN', 'INVENTORY_MANAGER'), orderController.updateOrderStatus);
+router.patch('/:id/status', authorize('ADMIN', 'INVENTORY_MANAGER', 'WAREHOUSE_STAFF'), orderController.updateOrderStatus);
 
 // Routes
 router
