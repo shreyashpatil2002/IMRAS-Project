@@ -13,6 +13,7 @@ const Orders = () => {
   const [skus, setSKUs] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showPickModal, setShowPickModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -70,7 +71,10 @@ const Orders = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    
     try {
+      setSubmitting(true);
       const orderData = {
         customer: formData.customer,
         warehouse: formData.warehouse,
@@ -93,6 +97,8 @@ const Orders = () => {
     } catch (error) {
       console.error('Error creating order:', error);
       alert(error.response?.data?.message || 'Failed to create order');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -811,9 +817,11 @@ const Orders = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all"
-                  >
-                    Create Order
+                    disabled={submitting}
+                    className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >\n                    {submitting && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}\n                    {submitting ? 'Creating...' : 'Create Order'}
                   </button>
                 </div>
               </form>
