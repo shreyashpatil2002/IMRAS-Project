@@ -7,6 +7,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
@@ -56,6 +57,7 @@ const UserManagement = () => {
 
   const handleAddUser = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
     if (userFormData.password !== userFormData.confirmPassword) {
       setError('Passwords do not match');
@@ -63,6 +65,8 @@ const UserManagement = () => {
     }
 
     try {
+      setSubmitting(true);
+      setError('');
       await userService.createUser({
         name: userFormData.name,
         email: userFormData.email,
@@ -82,10 +86,11 @@ const UserManagement = () => {
         password: '',
         confirmPassword: ''
       });
-      setError('');
       fetchUsers(); // Refresh the list
     } catch (err) {
       setError(err.message || 'Failed to create user');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -118,6 +123,7 @@ const UserManagement = () => {
 
   const handleUpdateUser = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
     // Only check password match if password is being changed
     if (userFormData.password && userFormData.password !== userFormData.confirmPassword) {
@@ -126,6 +132,8 @@ const UserManagement = () => {
     }
 
     try {
+      setSubmitting(true);
+      setError('');
       const updateData = {
         name: userFormData.name,
         email: userFormData.email,
@@ -152,10 +160,11 @@ const UserManagement = () => {
         password: '',
         confirmPassword: ''
       });
-      setError('');
       fetchUsers(); // Refresh the list
     } catch (err) {
       setError(err.message || 'Failed to update user');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -497,10 +506,13 @@ const UserManagement = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={userFormData.password !== userFormData.confirmPassword}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/20"
+                  disabled={userFormData.password !== userFormData.confirmPassword || submitting}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
                 >
-                  Create User
+                  {submitting && (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                  {submitting ? 'Creating...' : 'Create User'}
                 </button>
               </div>
             </form>
@@ -677,10 +689,13 @@ const UserManagement = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={userFormData.password && userFormData.password !== userFormData.confirmPassword}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/20"
+                  disabled={(userFormData.password && userFormData.password !== userFormData.confirmPassword) || submitting}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
                 >
-                  Update User
+                  {submitting && (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                  {submitting ? 'Updating...' : 'Update User'}
                 </button>
               </div>
             </form>
