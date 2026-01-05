@@ -1,16 +1,27 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import authService from '../services/authService';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle forgot password logic here
-    console.log('Reset password requested for:', email);
-    setIsSubmitted(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      await authService.forgotPassword(email);
+      setIsSubmitted(true);
+    } catch (err) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,6 +73,14 @@ const ForgotPassword = () => {
                   No worries, we'll send you reset instructions.
                 </p>
               </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label
@@ -88,10 +107,11 @@ const ForgotPassword = () => {
                 </div>
                 <div className="pt-2">
                   <button
-                    className="w-full h-12 flex items-center justify-center rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-base shadow-lg shadow-primary/30 transition-all active:scale-[0.98]"
+                    className="w-full h-12 flex items-center justify-center rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-base shadow-lg shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit"
+                    disabled={loading}
                   >
-                    Reset Password
+                    {loading ? 'Sending...' : 'Reset Password'}
                   </button>
                 </div>
               </form>
