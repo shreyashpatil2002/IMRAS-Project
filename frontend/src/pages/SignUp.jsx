@@ -8,7 +8,6 @@ const SignUp = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    companyName: '',
     role: 'WAREHOUSE_STAFF',
     password: '',
     confirmPassword: '',
@@ -173,29 +172,6 @@ const SignUp = () => {
                   required
                   type="email"
                   value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <div>
-              <label
-                className="block text-xs font-bold uppercase tracking-wider text-[#4c669a] dark:text-gray-500 mb-2"
-                htmlFor="companyName"
-              >
-                Company Name
-              </label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">
-                  business
-                </span>
-                <input
-                  className="w-full h-11 pl-10 pr-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[#0d121b] dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-400"
-                  id="companyName"
-                  name="companyName"
-                  placeholder="Acme Inc."
-                  required
-                  type="text"
-                  value={formData.companyName}
                   onChange={handleChange}
                 />
               </div>
