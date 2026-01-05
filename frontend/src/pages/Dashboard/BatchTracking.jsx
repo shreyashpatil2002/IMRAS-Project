@@ -576,15 +576,30 @@ const BatchTracking = () => {
                     <select
                       required
                       value={adjustData.reason}
-                      onChange={(e) => setAdjustData({ ...adjustData, reason: e.target.value })}
+                      onChange={(e) => setAdjustData({ ...adjustData, reason: e.target.value, adjustment: '' })}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
                       <option value="">Select reason</option>
-                      <option value="damaged">Damaged/Lost</option>
-                      <option value="returned">Customer Return</option>
-                      <option value="adjustment">Manual Adjustment</option>
+                      <option value="damaged">Damaged/Lost (Remove Stock)</option>
+                      <option value="returned">Customer Return (Add Stock)</option>
+                      <option value="adjustment">Manual Adjustment (Add/Remove)</option>
                     </select>
                   </div>
+                  {adjustData.reason && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        {adjustData.reason === 'damaged' && (
+                          <>📉 <strong>Damaged/Lost:</strong> Enter negative value (e.g., -10 to remove 10 units)</>
+                        )}
+                        {adjustData.reason === 'returned' && (
+                          <>📈 <strong>Customer Return:</strong> Enter positive value (e.g., +20 to add 20 returned units)</>
+                        )}
+                        {adjustData.reason === 'adjustment' && (
+                          <>⚖️ <strong>Manual Adjustment:</strong> Use +/- as needed (e.g., +50 to add, -30 to remove)</>
+                        )}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Quantity Change *
@@ -595,10 +610,14 @@ const BatchTracking = () => {
                       value={adjustData.adjustment}
                       onChange={(e) => setAdjustData({ ...adjustData, adjustment: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Use + for increase, - for decrease"
+                      placeholder={
+                        adjustData.reason === 'damaged' ? 'e.g., -10' :
+                        adjustData.reason === 'returned' ? 'e.g., +20' :
+                        'Use + for increase, - for decrease'
+                      }
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Example: +50 to add 50 units, -10 to remove 10 units
+                      Current Stock: {selectedBatch?.currentQuantity || 0} units | Initial: {selectedBatch?.initialQuantity || 0} units
                     </p>
                   </div>
                   <div>

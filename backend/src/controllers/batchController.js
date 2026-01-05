@@ -184,9 +184,60 @@ exports.adjustBatchQuantity = async (req, res, next) => {
       });
     }
 
-    // Update batch quantity
+    // Parse adjustment value
     const oldQuantity = batch.currentQuantity;
     const adjustmentValue = parseInt(adjustment);
+
+    // Validate adjustment based on reason
+    if (reason === 'damaged') {
+      // Damaged/Lost should always be negative (removing stock)
+      if (adjustmentValue >= 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Damaged/Lost adjustment must be negative (e.g., -10 to remove 10 units)'
+        });
+      }
+      // Cannot remove more than current quantity
+      if (Math.abs(adjustmentValue) > oldQuantity) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Cannot remove ${Math.abs(adjustmentValue)} units. Only ${oldQuantity} units available in batch`
+        });
+      }
+    } else if (reason === 'returned') {
+      // Customer return should always be positive (adding stock back)
+      if (adjustmentValue <= 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Customer Return adjustment must be positive (e.g., +20 to add 20 returned units)'
+        });
+      }
+      // Cannot exceed initial quantity
+      if (oldQuantity + adjustmentValue > batch.initialQuantity) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Adding ${adjustmentValue} units would exceed initial batch quantity of ${batch.initialQuantity}. Current: ${oldQuantity}`
+        });
+      }
+    } else if (reason === 'adjustment') {
+      // Manual adjustment can be positive or negative
+      // If negative, cannot exceed current quantity
+      if (adjustmentValue < 0 && Math.abs(adjustmentValue) > oldQuantity) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Cannot remove ${Math.abs(adjustmentValue)} units. Only ${oldQuantity} units available in batch`
+        });
+      }
+      // If positive, should not wildly exceed initial quantity (allow some buffer for corrections)
+      if (adjustmentValue > 0 && oldQuantity + adjustmentValue > batch.initialQuantity * 1.5) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Adding ${adjustmentValue} units seems excessive. Initial batch was ${batch.initialQuantity} units, current is ${oldQuantity}`
+        });
+      }
+    }
+
+    // Update batch quantity
     batch.currentQuantity += adjustmentValue;
 
     if (batch.currentQuantity < 0) {

@@ -368,10 +368,16 @@ const InventoryList = () => {
 
                         {/* Quantity */}
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`font-bold ${transaction.movementType.includes('IN') || transaction.movementType === 'INWARD' ? 'text-green-600' : 'text-red-600'}`}>
-                            {transaction.movementType.includes('IN') || transaction.movementType === 'INWARD' ? '+' : '-'}
-                            {transaction.quantity}
-                          </span>
+                          {transaction.movementType === 'ADJUSTMENT' ? (
+                            <span className={`font-bold ${transaction.quantity >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {transaction.quantity >= 0 ? '+' : ''}{transaction.quantity}
+                            </span>
+                          ) : (
+                            <span className={`font-bold ${transaction.movementType.includes('IN') || transaction.movementType === 'INWARD' ? 'text-green-600' : 'text-red-600'}`}>
+                              {transaction.movementType.includes('IN') || transaction.movementType === 'INWARD' ? '+' : '-'}
+                              {transaction.quantity}
+                            </span>
+                          )}
                         </td>
 
                         {/* Batch & Expiry */}
@@ -502,10 +508,16 @@ const InventoryList = () => {
                       <label className="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">
                         Quantity
                       </label>
-                      <p className={`text-sm font-bold ${selectedTransaction.movementType.includes('IN') || selectedTransaction.movementType === 'INWARD' ? 'text-green-600' : 'text-red-600'}`}>
-                        {selectedTransaction.movementType.includes('IN') || selectedTransaction.movementType === 'INWARD' ? '+' : '-'}
-                        {selectedTransaction.quantity}
-                      </p>
+                      {selectedTransaction.movementType === 'ADJUSTMENT' ? (
+                        <p className={`text-sm font-bold ${selectedTransaction.quantity >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {selectedTransaction.quantity >= 0 ? '+' : ''}{selectedTransaction.quantity}
+                        </p>
+                      ) : (
+                        <p className={`text-sm font-bold ${selectedTransaction.movementType.includes('IN') || selectedTransaction.movementType === 'INWARD' ? 'text-green-600' : 'text-red-600'}`}>
+                          {selectedTransaction.movementType.includes('IN') || selectedTransaction.movementType === 'INWARD' ? '+' : '-'}
+                          {selectedTransaction.quantity}
+                        </p>
+                      )}
                     </div>
 
                     <div>
