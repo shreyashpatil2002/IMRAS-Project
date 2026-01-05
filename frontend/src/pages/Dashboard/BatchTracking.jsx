@@ -11,20 +11,9 @@ const BatchTracking = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedBatch, setSelectedBatch] = useState(null);
-  const [showNewBatchModal, setShowNewBatchModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState(null);
-  const [batchFormData, setBatchFormData] = useState({
-    product: '',
-    sku: '',
-    batchNumber: '',
-    quantity: '',
-    receivedDate: '',
-    expiryDate: '',
-    location: '',
-    supplier: '',
-    qrCode: ''
-  });
   const [adjustData, setAdjustData] = useState({
     batchId: null,
     adjustment: '',
@@ -100,17 +89,27 @@ const BatchTracking = () => {
 
   const handleAdjustQuantity = async (e) => {
     e.preventDefault();
+    if (submitting) return; // Prevent double submission
+    
     try {
-      await batchService.adjustBatchQuantity(adjustData.batchId, {
+      setSubmitting(true);
+      setError('');
+      const response = await batchService.adjustBatchQuantity(adjustData.batchId, {
         adjustment: parseInt(adjustData.adjustment),
         reason: adjustData.reason,
         notes: adjustData.notes
       });
+      
+      // Show success message
+      alert(`Batch quantity adjusted successfully! Previous: ${response.data.adjustment.oldQuantity}, New: ${response.data.adjustment.newQuantity}`);
+      
       setShowAdjustModal(false);
       setAdjustData({ batchId: null, adjustment: '', reason: '', notes: '' });
-      fetchBatches();
+      await fetchBatches();
     } catch (err) {
-      setError(err.message || 'Failed to adjust quantity');
+      setError(err.response?.data?.message || err.message || 'Failed to adjust quantity');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -147,23 +146,6 @@ const BatchTracking = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Track and manage product batches with detailed lot information
             </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-              Scan QR
-            </button>
-            <button className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              Export
-            </button>
-            <button
-              onClick={() => setShowNewBatchModal(true)}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors shadow-md shadow-blue-500/20 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              New Batch
-            </button>
           </div>
         </div>
 
@@ -302,21 +284,9 @@ const BatchTracking = () => {
                     return (
                       <tr key={batch._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-[#0d121b] dark:text-white mb-1">
-                              {batch.batchNumber}
-                            </span>
-                            {batch.qrCode && (
-                              <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[14px] text-gray-400">
-                                  qr_code_2
-                                </span>
-                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                  {batch.qrCode}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                          <span className="text-sm font-bold text-[#0d121b] dark:text-white">
+                            {batch.batchNumber}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col">
@@ -405,9 +375,6 @@ const BatchTracking = () => {
                             >
                               <span className="material-symbols-outlined text-[20px]">visibility</span>
                             </button>
-                            <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors" title="Print Label">
-                              <span className="material-symbols-outlined text-[20px]">print</span>
-                            </button>
                             <button
                               onClick={() => {
                                 setAdjustData({ ...adjustData, batchId: batch._id });
@@ -465,14 +432,6 @@ const BatchTracking = () => {
                     </p>
                     <p className="text-base font-mono font-semibold text-[#0d121b] dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded inline-block">
                       {selectedBatch.product?.sku || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      QR Code
-                    </p>
-                    <p className="text-base font-mono text-[#0d121b] dark:text-white">
-                      {selectedBatch.qrCode || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -568,205 +527,19 @@ const BatchTracking = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3 pt-4">
-                  <button className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    Print Label
-                  </button>
+                <div className="flex pt-4">
                   <button
                     onClick={() => {
                       setAdjustData({ ...adjustData, batchId: selectedBatch._id });
                       setShowAdjustModal(true);
                       setSelectedBatch(null);
                     }}
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors"
+                    className="w-full px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors"
                   >
                     Adjust Quantity
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* New Batch Modal */}
-        {showNewBatchModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-surface-light dark:bg-surface-dark z-10">
-                <div>
-                  <h2 className="text-xl font-bold text-[#0d121b] dark:text-white">
-                    Add New Batch
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Create a new batch entry for inventory tracking
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowNewBatchModal(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  console.log('New batch:', batchFormData);
-                  setShowNewBatchModal(false);
-                  setBatchFormData({
-                    product: '',
-                    sku: '',
-                    batchNumber: '',
-                    quantity: '',
-                    receivedDate: '',
-                    expiryDate: '',
-                    location: '',
-                    supplier: '',
-                    qrCode: ''
-                  });
-                }}
-                className="p-6"
-              >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Product Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={batchFormData.product}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, product: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter product name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        SKU *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={batchFormData.sku}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, sku: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="e.g., WM-350-BLK"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Batch Number *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={batchFormData.batchNumber}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, batchNumber: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="e.g., B-2023-DEC-001"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Initial Quantity *
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        value={batchFormData.quantity}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, quantity: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter quantity"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Received Date *
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={batchFormData.receivedDate}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, receivedDate: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Expiry Date *
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={batchFormData.expiryDate}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, expiryDate: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Location *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={batchFormData.location}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, location: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="e.g., Zone A, Shelf 4"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Supplier *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={batchFormData.supplier}
-                        onChange={(e) => setBatchFormData({ ...batchFormData, supplier: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter supplier name"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      QR Code
-                    </label>
-                    <input
-                      type="text"
-                      value={batchFormData.qrCode}
-                      onChange={(e) => setBatchFormData({ ...batchFormData, qrCode: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Auto-generated if left blank"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowNewBatchModal(false)}
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors shadow-md shadow-blue-500/20"
-                  >
-                    Create Batch
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         )}
@@ -792,17 +565,7 @@ const BatchTracking = () => {
                 </button>
               </div>
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  console.log('Adjust quantity:', adjustData);
-                  setShowAdjustModal(false);
-                  setAdjustData({
-                    batchId: null,
-                    adjustment: '',
-                    reason: '',
-                    notes: ''
-                  });
-                }}
+                onSubmit={handleAdjustQuantity}
                 className="p-6"
               >
                 <div className="space-y-4">
@@ -817,8 +580,6 @@ const BatchTracking = () => {
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
                       <option value="">Select reason</option>
-                      <option value="received">Stock Received</option>
-                      <option value="sold">Stock Sold</option>
                       <option value="damaged">Damaged/Lost</option>
                       <option value="returned">Customer Return</option>
                       <option value="adjustment">Manual Adjustment</option>
@@ -863,9 +624,13 @@ const BatchTracking = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors shadow-md shadow-blue-500/20"
+                    disabled={submitting}
+                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Update Quantity
+                    {submitting && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}
+                    {submitting ? 'Updating...' : 'Update Quantity'}
                   </button>
                 </div>
               </form>
