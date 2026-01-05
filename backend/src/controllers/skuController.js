@@ -1,5 +1,7 @@
 const SKU = require('../models/SKU');
 const stockService = require('../services/stockService');
+const Batch = require('../models/Batch');
+const Product = require('../models/Product');
 
 // @desc    Get all SKUs
 // @route   GET /api/skus
@@ -145,14 +147,7 @@ exports.getSKUStock = async (req, res, next) => {
   try {
     const { warehouseId } = req.query;
     
-    let stock;
-    if (warehouseId) {
-      stock = await stockService.getCurrentStock(req.params.id, warehouseId);
-    } else {
-      stock = await stockService.getTotalStock(req.params.id);
-    }
-
-    // Check reorder point
+    // Get SKU details
     const sku = await SKU.findById(req.params.id);
     if (!sku) {
       return res.status(404).json({
@@ -161,16 +156,48 @@ exports.getSKUStock = async (req, res, next) => {
       });
     }
 
+    let currentStock = 0;
+
+    if (warehouseId) {
+      // Find all products that have this SKU code
+      const products = await Product.find({ sku: sku.skuCode });
+      
+      if (products.length > 0) {
+        const productIds = products.map(p => p._id);
+        
+        // Sum up currentQuantity from all batches for these products at this warehouse
+        const batches = await Batch.find({
+          product: { $in: productIds },
+          warehouse: warehouseId
+        });
+        
+        currentStock = batches.reduce((sum, batch) => sum + (batch.currentQuantity || 0), 0);
+      }
+    } else {
+      // Get total stock across all warehouses
+      const products = await Product.find({ sku: sku.skuCode });
+      
+      if (products.length > 0) {
+        const productIds = products.map(p => p._id);
+        
+        const batches = await Batch.find({
+          product: { $in: productIds }
+        });
+        
+        currentStock = batches.reduce((sum, batch) => sum + (batch.currentQuantity || 0), 0);
+      }
+    }
+
     res.status(200).json({
       status: 'success',
       data: {
         skuId: sku._id,
         skuCode: sku.skuCode,
-        currentStock: stock,
+        currentStock: currentStock,
         minStock: sku.minStock,
         maxStock: sku.maxStock,
         safetyStock: sku.safetyStock,
-        needsReorder: stock <= sku.minStock
+        needsReorder: currentStock <= sku.minStock
       }
     });
   } catch (error) {

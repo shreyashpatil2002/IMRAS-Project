@@ -10,6 +10,7 @@ const PurchaseRequisitions = () => {
   const [skus, setSKUs] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPRForView, setSelectedPRForView] = useState(null);
@@ -19,14 +20,12 @@ const PurchaseRequisitions = () => {
   const [formData, setFormData] = useState({
     warehouse: '',
     priority: 'MEDIUM',
-    sku: '',
-    requestedQuantity: '',
-    requiredByDate: '',
-    remarks: ''
+    items: [{ sku: '', requestedQuantity: '', urgency: 'MEDIUM', remarks: '' }],
+    requiredByDate: ''
   });
   
-  const [selectedSKU, setSelectedSKU] = useState(null);
-  const [currentStock, setCurrentStock] = useState(0);
+  const [selectedSKUs, setSelectedSKUs] = useState({});
+  const [currentStocks, setCurrentStocks] = useState({});
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -91,15 +90,18 @@ const PurchaseRequisitions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    
     try {
+      setSubmitting(true);
       const prData = {
         warehouse: formData.warehouse,
-        items: [{
-          sku: formData.sku,
-          requestedQuantity: parseInt(formData.requestedQuantity),
-          urgency: formData.priority,
-          remarks: formData.remarks
-        }],
+        items: formData.items.map(item => ({
+          sku: item.sku,
+          requestedQuantity: parseInt(item.requestedQuantity),
+          urgency: item.urgency,
+          remarks: item.remarks
+        })),
         requiredByDate: formData.requiredByDate || undefined
       };
       
@@ -111,27 +113,35 @@ const PurchaseRequisitions = () => {
     } catch (error) {
       console.error('Error creating PR:', error);
       alert(error.response?.data?.message || 'Failed to create PR');
+    } finally {
+      setSubmitting(false);
     }
   };
   
-  const handleSKUChange = async (skuId) => {
-    setFormData(prev => ({ ...prev, sku: skuId }));
+  const handleSKUChange = async (index, skuId) => {
+    const newItems = [...formData.items];
+    newItems[index].sku = skuId;
+    setFormData(prev => ({ ...prev, items: newItems }));
     
     if (skuId && formData.warehouse) {
       try {
         const sku = skus.find(s => s._id === skuId);
-        setSelectedSKU(sku);
+        setSelectedSKUs(prev => ({ ...prev, [index]: sku }));
         
         // Fetch current stock for selected warehouse
         const stockData = await skuService.getSKUStock(skuId, formData.warehouse);
-        setCurrentStock(stockData.data?.currentStock || 0);
+        
+        // stockData is already the data object: { currentStock: 140, skuCode: ..., ... }
+        const currentStock = stockData.currentStock || 0;
+        
+        setCurrentStocks(prev => ({ ...prev, [index]: currentStock }));
       } catch (error) {
         console.error('Error fetching SKU stock:', error);
-        setCurrentStock(0);
+        setCurrentStocks(prev => ({ ...prev, [index]: 0 }));
       }
     } else {
-      setSelectedSKU(null);
-      setCurrentStock(0);
+      setSelectedSKUs(prev => ({ ...prev, [index]: null }));
+      setCurrentStocks(prev => ({ ...prev, [index]: 0 }));
     }
   };
 
@@ -181,28 +191,44 @@ const PurchaseRequisitions = () => {
   };
 
   const addItem = () => {
-    // Not needed for single item version
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, { sku: '', requestedQuantity: '', urgency: 'MEDIUM', remarks: '' }]
+    }));
   };
 
   const removeItem = (index) => {
-    // Not needed for single item version
+    if (formData.items.length === 1) {
+      alert('At least one item is required');
+      return;
+    }
+    const newItems = formData.items.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, items: newItems }));
+    
+    // Clean up selected SKUs and stocks
+    const newSelectedSKUs = { ...selectedSKUs };
+    const newCurrentStocks = { ...currentStocks };
+    delete newSelectedSKUs[index];
+    delete newCurrentStocks[index];
+    setSelectedSKUs(newSelectedSKUs);
+    setCurrentStocks(newCurrentStocks);
   };
 
   const updateItem = (index, field, value) => {
-    // Not needed for single item version
+    const newItems = [...formData.items];
+    newItems[index][field] = value;
+    setFormData(prev => ({ ...prev, items: newItems }));
   };
 
   const resetForm = () => {
     setFormData({
       warehouse: '',
       priority: 'MEDIUM',
-      sku: '',
-      requestedQuantity: '',
-      requiredByDate: '',
-      remarks: ''
+      items: [{ sku: '', requestedQuantity: '', urgency: 'MEDIUM', remarks: '' }],
+      requiredByDate: ''
     });
-    setSelectedSKU(null);
-    setCurrentStock(0);
+    setSelectedSKUs({});
+    setCurrentStocks({});
   };
 
   const getStatusColor = (status) => {
@@ -417,7 +443,10 @@ const PurchaseRequisitions = () => {
                           value={formData.warehouse}
                           onChange={(e) => {
                             setFormData(prev => ({ ...prev, warehouse: e.target.value }));
-                            if (formData.sku) handleSKUChange(formData.sku);
+                            // Refresh stock for all selected SKUs
+                            formData.items.forEach((item, index) => {
+                              if (item.sku) handleSKUChange(index, item.sku);
+                            });
                           }}
                           required
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -463,96 +492,163 @@ const PurchaseRequisitions = () => {
                 
                 {/* Item Details */}
                 <div className="space-y-4 mb-6">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 border-b pb-2">Item Details</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      SKU *
-                    </label>
-                    <select
-                      value={formData.sku}
-                      onChange={(e) => handleSKUChange(e.target.value)}
-                      required
-                      disabled={!formData.warehouse}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Items</h3>
+                    <button
+                      type="button"
+                      onClick={addItem}
+                      className="px-3 py-1 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark transition-all flex items-center gap-1"
                     >
-                      <option value="">Select SKU</option>
-                      {skus.map(sku => (
-                        <option key={sku._id} value={sku._id}>
-                          {sku.skuCode} - {sku.name}
-                        </option>
-                      ))}
-                    </select>
-                    {!formData.warehouse && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Please select warehouse first</p>
-                    )}
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      Add Item
+                    </button>
                   </div>
                   
-                  {selectedSKU && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600 dark:text-gray-400">Item Description:</span>
-                          <p className="font-medium text-gray-900 dark:text-white mt-1">{selectedSKU.name}</p>
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Item {index + 1}</h4>
+                        {formData.items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          SKU *
+                        </label>
+                        <select
+                          value={item.sku}
+                          onChange={(e) => {
+                            // Check if SKU is already selected in another item
+                            const skuAlreadySelected = formData.items.some((otherItem, otherIndex) => 
+                              otherIndex !== index && otherItem.sku === e.target.value
+                            );
+                            
+                            if (skuAlreadySelected) {
+                              alert('This SKU is already selected in another item. Please choose a different SKU.');
+                              return;
+                            }
+                            
+                            handleSKUChange(index, e.target.value);
+                          }}
+                          required
+                          disabled={!formData.warehouse}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">Select SKU</option>
+                          {skus.map(sku => {
+                            // Check if this SKU is already selected in another item
+                            const isAlreadySelected = formData.items.some((otherItem, otherIndex) => 
+                              otherIndex !== index && otherItem.sku === sku._id
+                            );
+                            
+                            return (
+                              <option 
+                                key={sku._id} 
+                                value={sku._id}
+                                disabled={isAlreadySelected}
+                                style={isAlreadySelected ? { color: '#999', fontStyle: 'italic' } : {}}
+                              >
+                                {sku.skuCode} - {sku.name} {isAlreadySelected ? '(Already selected)' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        {!formData.warehouse && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Please select warehouse first</p>
+                        )}
+                      </div>
+                      
+                      {selectedSKUs[index] && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">Description:</span>
+                              <p className="font-medium text-gray-900 dark:text-white">{selectedSKUs[index].name}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">Unit:</span>
+                              <p className="font-medium text-gray-900 dark:text-white">{selectedSKUs[index].unit || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">Current Stock:</span>
+                              <p className={`font-medium ${(currentStocks[index] || 0) <= (selectedSKUs[index].minStock || 0) ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                                {currentStocks[index] || 0} {selectedSKUs[index].unit || 'units'}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">Min Stock:</span>
+                              <p className="font-medium text-gray-900 dark:text-white">{selectedSKUs[index].minStock || 'Not set'}</p>
+                            </div>
+                          </div>
                         </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Unit of Measure:</span>
-                          <p className="font-medium text-gray-900 dark:text-white mt-1">{selectedSKU.unit || 'N/A'}</p>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Requested Quantity *
+                          </label>
+                          <input
+                            type="number"
+                            value={item.requestedQuantity}
+                            onChange={(e) => updateItem(index, 'requestedQuantity', e.target.value)}
+                            required
+                            min="1"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Enter quantity"
+                          />
                         </div>
+                        
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Current Stock:</span>
-                          <p className={`font-medium mt-1 ${currentStock <= (selectedSKU.minStock || 0) ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
-                            {currentStock} {selectedSKU.unit || 'units'}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600 dark:text-gray-400">Reorder Point:</span>
-                          <p className="font-medium text-gray-900 dark:text-white mt-1">{selectedSKU.minStock || 'Not set'}</p>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Urgency
+                          </label>
+                          <select
+                            value={item.urgency}
+                            onChange={(e) => updateItem(index, 'urgency', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="URGENT">Urgent</option>
+                          </select>
                         </div>
                       </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Item Remarks
+                        </label>
+                        <textarea
+                          value={item.remarks}
+                          onChange={(e) => updateItem(index, 'remarks', e.target.value)}
+                          rows="2"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Notes for this item (optional)"
+                        />
+                      </div>
                     </div>
-                  )}
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Requested Quantity *
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.requestedQuantity}
-                        onChange={(e) => setFormData(prev => ({ ...prev, requestedQuantity: e.target.value }))}
-                        required
-                        min="1"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Enter quantity"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Required By Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.requiredByDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, requiredByDate: e.target.value }))}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
+                  ))}
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Remarks
+                      Required By Date
                     </label>
-                    <textarea
-                      value={formData.remarks}
-                      onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
-                      rows="3"
+                    <input
+                      type="date"
+                      value={formData.requiredByDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, requiredByDate: e.target.value }))}
+                      min={new Date().toISOString().split('T')[0]}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="Additional notes or justification (optional)"
                     />
                   </div>
                 </div>
@@ -567,9 +663,11 @@ const PurchaseRequisitions = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all"
-                  >
-                    Create PR
+                    disabled={submitting}
+                    className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >                    {submitting && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}                 {submitting ? 'Creating...' : 'Create PR'}
                   </button>
                 </div>
               </form>

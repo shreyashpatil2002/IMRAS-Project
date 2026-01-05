@@ -1,5 +1,7 @@
 const Batch = require('../models/Batch');
 const Product = require('../models/Product');
+const StockLedger = require('../models/StockLedger');
+const SKU = require('../models/SKU');
 
 // @desc    Get all batches
 // @route   GET /api/batches
@@ -171,7 +173,9 @@ exports.adjustBatchQuantity = async (req, res, next) => {
   try {
     const { adjustment, reason, notes } = req.body;
     
-    const batch = await Batch.findById(req.params.id).populate('product');
+    const batch = await Batch.findById(req.params.id)
+      .populate('product')
+      .populate('warehouse', 'name code');
 
     if (!batch) {
       return res.status(404).json({
@@ -182,7 +186,8 @@ exports.adjustBatchQuantity = async (req, res, next) => {
 
     // Update batch quantity
     const oldQuantity = batch.currentQuantity;
-    batch.currentQuantity += adjustment;
+    const adjustmentValue = parseInt(adjustment);
+    batch.currentQuantity += adjustmentValue;
 
     if (batch.currentQuantity < 0) {
       return res.status(400).json({
@@ -191,13 +196,69 @@ exports.adjustBatchQuantity = async (req, res, next) => {
       });
     }
 
-    batch.notes = notes || batch.notes;
+    // Add notes if provided
+    if (notes) {
+      batch.notes = notes;
+    }
+    
     await batch.save();
 
     // Update product quantity
     const product = batch.product;
-    product.quantity += adjustment;
+    product.quantity += adjustmentValue;
     await product.save();
+
+    // Find the SKU ObjectId from the SKU code
+    const skuDoc = await SKU.findOne({ skuCode: product.sku });
+    
+    if (!skuDoc) {
+      return res.status(404).json({
+        status: 'error',
+        message: `SKU not found for code: ${product.sku}`
+      });
+    }
+
+    // Get the current balance from the latest stock ledger entry
+    const latestLedgerEntry = await StockLedger.findOne({
+      sku: skuDoc._id,
+      warehouse: batch.warehouse._id
+    }).sort({ transactionDate: -1 });
+
+    const previousBalance = latestLedgerEntry ? latestLedgerEntry.balanceQuantity : 0;
+    const newBalance = previousBalance + adjustmentValue;
+
+    // Create stock ledger entry
+    const reasonMap = {
+      'damaged': 'Damaged/Lost Stock',
+      'returned': 'Customer Return',
+      'adjustment': 'Manual Stock Adjustment'
+    };
+
+    const stockLedgerEntry = await StockLedger.create({
+      sku: skuDoc._id,
+      warehouse: batch.warehouse._id,
+      location: batch.location ? {
+        aisle: batch.location.split('-')[0],
+        bin: batch.location.split('-').length > 2 ? batch.location.split('-')[2] : batch.location.split('-')[1]
+      } : undefined,
+      movementType: 'ADJUSTMENT',
+      quantity: adjustmentValue,
+      batchNumber: batch.batchNumber,
+      expiryDate: batch.expiryDate,
+      referenceType: 'ADJUSTMENT',
+      referenceId: batch._id,
+      balanceQuantity: newBalance,
+      user: req.user._id,
+      remarks: `${reasonMap[reason] || 'Stock Adjustment'}: ${adjustmentValue > 0 ? 'Added' : 'Removed'} ${Math.abs(adjustmentValue)} units. ${notes || ''}`.trim(),
+      transactionDate: new Date()
+    });
+
+    // Populate the stock ledger entry for response
+    await stockLedgerEntry.populate([
+      { path: 'user', select: 'name email role' },
+      { path: 'warehouse', select: 'name code' },
+      { path: 'sku', select: 'skuCode' }
+    ]);
 
     res.status(200).json({
       status: 'success',
@@ -207,9 +268,10 @@ exports.adjustBatchQuantity = async (req, res, next) => {
         adjustment: {
           oldQuantity,
           newQuantity: batch.currentQuantity,
-          change: adjustment,
-          reason
-        }
+          change: adjustmentValue,
+          reason: reasonMap[reason] || reason
+        },
+        stockLedger: stockLedgerEntry
       }
     });
   } catch (error) {
