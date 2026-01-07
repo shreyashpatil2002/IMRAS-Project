@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Logo from '../components/Logo';
 
@@ -332,12 +333,12 @@ const Pricing = () => {
             needs.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full justify-center">
-            <button className="flex h-12 items-center justify-center rounded-lg bg-white px-8 text-base font-bold text-primary shadow-lg transition-transform hover:scale-105 hover:bg-gray-50">
-              Chat with Sales
-            </button>
-            <button className="flex h-12 items-center justify-center rounded-lg border border-white/30 bg-primary/20 px-8 text-base font-bold text-white backdrop-blur-sm transition-colors hover:bg-primary/40">
-              Visit Help Center
-            </button>
+            <Link to="/about" className="flex h-12 items-center justify-center rounded-lg bg-white px-8 text-base font-bold text-primary shadow-lg transition-transform hover:scale-105 hover:bg-gray-50">
+              Learn More
+            </Link>
+            <Link to="/" className="flex h-12 items-center justify-center rounded-lg border border-white/30 bg-primary/20 px-8 text-base font-bold text-white backdrop-blur-sm transition-colors hover:bg-primary/40">
+              Back to Home
+            </Link>
           </div>
         </div>
       </section>
@@ -360,26 +361,26 @@ const Pricing = () => {
               <h4 className="text-sm font-bold text-[#0d121b] dark:text-white">
                 Product
               </h4>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
+              <Link to="/" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
                 Features
-              </a>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
+              </Link>
+              <Link to="/pricing" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
                 Pricing
-              </a>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
-                Integrations
-              </a>
+              </Link>
+              <Link to="/about" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
+                About
+              </Link>
             </div>
             <div className="flex flex-col gap-3">
               <h4 className="text-sm font-bold text-[#0d121b] dark:text-white">
                 Company
               </h4>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
+              <Link to="/about" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
                 About Us
-              </a>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
-                Careers
-              </a>
+              </Link>
+              <Link to="/pricing" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
+                Pricing
+              </Link>
               <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
                 Blog
               </a>

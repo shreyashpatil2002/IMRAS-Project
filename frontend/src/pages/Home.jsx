@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Logo from '../components/Logo';
 
@@ -24,12 +25,12 @@ const Home = () => {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-3">
-                <button className="flex h-12 min-w-[140px] cursor-pointer items-center justify-center rounded-lg bg-primary px-6 text-base font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-blue-700">
+                <Link to="/pricing" className="flex h-12 min-w-[140px] cursor-pointer items-center justify-center rounded-lg bg-primary px-6 text-base font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-blue-700">
                   <span className="truncate">Start Free Trial</span>
-                </button>
-                <button className="flex h-12 min-w-[140px] cursor-pointer items-center justify-center rounded-lg bg-[#e7ebf3] px-6 text-base font-bold text-[#0d121b] hover:bg-[#dce3ef] dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 transition-colors">
-                  <span className="truncate">View Demo</span>
-                </button>
+                </Link>
+                <Link to="/about" className="flex h-12 min-w-[140px] cursor-pointer items-center justify-center rounded-lg bg-[#e7ebf3] px-6 text-base font-bold text-[#0d121b] hover:bg-[#dce3ef] dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 transition-colors">
+                  <span className="truncate">Learn More</span>
+                </Link>
               </div>
             </div>
             <div className="flex-1 w-full">
@@ -218,12 +219,12 @@ const Home = () => {
             trial.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full justify-center">
-            <button className="flex h-12 items-center justify-center rounded-lg bg-white px-8 text-base font-bold text-primary shadow-lg transition-transform hover:scale-105 hover:bg-gray-50">
+            <Link to="/pricing" className="flex h-12 items-center justify-center rounded-lg bg-white px-8 text-base font-bold text-primary shadow-lg transition-transform hover:scale-105 hover:bg-gray-50">
               Start Free Trial
-            </button>
-            <button className="flex h-12 items-center justify-center rounded-lg border border-white/30 bg-primary/20 px-8 text-base font-bold text-white backdrop-blur-sm transition-colors hover:bg-primary/40">
-              Contact Sales
-            </button>
+            </Link>
+            <Link to="/about" className="flex h-12 items-center justify-center rounded-lg border border-white/30 bg-primary/20 px-8 text-base font-bold text-white backdrop-blur-sm transition-colors hover:bg-primary/40">
+              Learn More
+            </Link>
           </div>
         </div>
       </section>
@@ -246,26 +247,26 @@ const Home = () => {
               <h4 className="text-sm font-bold text-[#0d121b] dark:text-white">
                 Product
               </h4>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
+              <Link to="/" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
                 Features
-              </a>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
+              </Link>
+              <Link to="/pricing" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
                 Pricing
-              </a>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
-                Integrations
-              </a>
+              </Link>
+              <Link to="/about" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
+                About
+              </Link>
             </div>
             <div className="flex flex-col gap-3">
               <h4 className="text-sm font-bold text-[#0d121b] dark:text-white">
                 Company
               </h4>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
+              <Link to="/about" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
                 About Us
-              </a>
-              <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
-                Careers
-              </a>
+              </Link>
+              <Link to="/pricing" className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white">
+                Pricing
+              </Link>
               <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-400 dark:hover:text-white" href="#">
                 Blog
               </a>
