@@ -10,14 +10,13 @@ const Dashboard = () => {
     const user = authService.getCurrentUser();
     if (user) {
       setUserRole(user.role);
-      console.log('User role from auth:', user.role); // Debug log
     }
   }, []);
 
   const stats = [
     {
       title: 'Total Inventory Value',
-      value: '$1,240,500',
+      value: '1,240,500',
       icon: 'paid',
       color: 'blue',
       trend: '+2.5%',
@@ -122,7 +121,6 @@ const Dashboard = () => {
 
   // If user is staff, show limited dashboard
   if (userRole === 'WAREHOUSE_STAFF') {
-    console.log('Rendering WAREHOUSE_STAFF dashboard');
     return (
       <DashboardLayout title="Dashboard">
         <div className="max-w-[1200px] mx-auto flex flex-col gap-6">
@@ -367,7 +365,6 @@ const Dashboard = () => {
 
   // If user is manager, show warehouse manager dashboard
   if (userRole === 'INVENTORY_MANAGER') {
-    console.log('Rendering INVENTORY_MANAGER dashboard');
     return (
       <DashboardLayout title="Dashboard">
         <div className="max-w-[1200px] mx-auto flex flex-col gap-6">
@@ -610,9 +607,9 @@ const Dashboard = () => {
 
   // Admin-specific data
   const todaysGRNs = [
-    { id: 'GRN-1025', poNumber: 'PO-8825', supplier: 'TechGiant Corp', items: 15, value: '$12,450', status: 'Completed', time: '09:30 AM' },
-    { id: 'GRN-1026', poNumber: 'PO-8827', supplier: 'ElectroParts Ltd', items: 8, value: '$5,280', status: 'In Progress', time: '11:15 AM' },
-    { id: 'GRN-1027', poNumber: 'PO-8828', supplier: 'Global Supplies', items: 22, value: '$18,900', status: 'Pending', time: '2:00 PM' }
+    { id: 'GRN-1025', poNumber: 'PO-8825', supplier: 'TechGiant Corp', items: 15, value: '12,450', status: 'Completed', time: '09:30 AM' },
+    { id: 'GRN-1026', poNumber: 'PO-8827', supplier: 'ElectroParts Ltd', items: 8, value: '5,280', status: 'In Progress', time: '11:15 AM' },
+    { id: 'GRN-1027', poNumber: 'PO-8828', supplier: 'Global Supplies', items: 22, value: '18,900', status: 'Pending', time: '2:00 PM' }
   ];
 
   const todaysTransfers = [
@@ -636,9 +633,9 @@ const Dashboard = () => {
   ];
 
   const expirySummary = [
-    { category: 'Critical (< 7 days)', count: 8, value: '$12,450', color: 'red' },
-    { category: 'Warning (7-30 days)', count: 24, value: '$28,900', color: 'orange' },
-    { category: 'Monitor (30-60 days)', count: 45, value: '$56,200', color: 'blue' }
+    { category: 'Critical (< 7 days)', count: 8, value: '12,450', color: 'red' },
+    { category: 'Warning (7-30 days)', count: 24, value: '28,900', color: 'orange' },
+    { category: 'Monitor (30-60 days)', count: 45, value: '56,200', color: 'blue' }
   ];
 
   const warehouseUtilization = [
@@ -649,7 +646,6 @@ const Dashboard = () => {
   ];
 
   // Admin dashboard (default for ADMIN role and fallback)
-  console.log('Rendering ADMIN dashboard for role:', userRole);
   return (
     <DashboardLayout title="Dashboard">
       <div className="max-w-[1200px] mx-auto flex flex-col gap-6">

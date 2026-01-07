@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import authService from '../../services/authService';
+import activityService from '../../services/activityService';
 
 const MyActivity = () => {
   const [user, setUser] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [stats, setStats] = useState({ completedToday: 0, thisWeek: 0, thisMonth: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, today, week, month
 
@@ -17,31 +19,16 @@ const MyActivity = () => {
   const fetchActivities = async () => {
     try {
       setLoading(true);
-      // In production, fetch user's activity log from backend
-      // For now, showing simulated data
-      const mockActivities = [
-        {
-          id: 1,
-          type: 'GRN',
-          action: 'Created Goods Receipt',
-          reference: 'GRN-001',
-          details: 'Received 500 units from Supplier ABC',
-          timestamp: new Date().toISOString(),
-          status: 'Completed'
-        },
-        {
-          id: 2,
-          type: 'Transfer',
-          action: 'Created Transfer Request',
-          reference: 'TRF-123',
-          details: 'Transfer 100 units from WH-A to WH-B',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          status: 'Pending'
-        }
-      ];
-      setActivities(mockActivities);
+      const response = await activityService.getMyActivity({ filter, limit: 50 });
+      const activitiesData = response.activities || [];
+      const statsData = response.stats || { completedToday: 0, thisWeek: 0, thisMonth: 0 };
+      
+      setActivities(activitiesData);
+      setStats(statsData);
     } catch (error) {
       console.error('Error fetching activities:', error);
+      setActivities([]);
+      setStats({ completedToday: 0, thisWeek: 0, thisMonth: 0 });
     } finally {
       setLoading(false);
     }
@@ -49,33 +36,39 @@ const MyActivity = () => {
 
   const getActivityIcon = (type) => {
     const icons = {
-      GRN: 'local_shipping',
-      Transfer: 'swap_horiz',
-      Putaway: 'move_to_inbox',
-      PR: 'assignment',
-      PO: 'receipt_long'
+      INWARD: 'move_to_inbox',
+      OUTWARD: 'outbox',
+      TRANSFER_IN: 'login',
+      TRANSFER_OUT: 'logout',
+      ADJUSTMENT: 'tune',
+      PO: 'receipt_long',
+      ORDER: 'shopping_cart',
+      TRANSFER: 'swap_horiz',
+      PR: 'assignment'
     };
     return icons[type] || 'history';
   };
 
   const getActivityColor = (type) => {
     const colors = {
-      GRN: 'bg-green-100 text-green-600',
-      Transfer: 'bg-blue-100 text-blue-600',
-      Putaway: 'bg-purple-100 text-purple-600',
-      PR: 'bg-orange-100 text-orange-600',
-      PO: 'bg-indigo-100 text-indigo-600'
+      INWARD: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+      OUTWARD: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+      TRANSFER_IN: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+      TRANSFER_OUT: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+      ADJUSTMENT: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
     };
-    return colors[type] || 'bg-gray-100 text-gray-600';
+    return colors[type] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
   };
 
-  const getStatusBadge = (status) => {
-    const colors = {
-      Completed: 'bg-green-100 text-green-800',
-      Pending: 'bg-yellow-100 text-yellow-800',
-      Rejected: 'bg-red-100 text-red-800'
+  const getMovementLabel = (type) => {
+    const labels = {
+      INWARD: 'Stock Received',
+      OUTWARD: 'Stock Dispatched',
+      TRANSFER_IN: 'Transfer Received',
+      TRANSFER_OUT: 'Transfer Sent',
+      ADJUSTMENT: 'Stock Adjusted'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return labels[type] || type;
   };
 
   const formatTimestamp = (timestamp) => {
@@ -152,30 +145,42 @@ const MyActivity = () => {
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {activities.map((activity) => (
-                <div key={activity.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <div key={activity._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <div className="flex gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getActivityColor(activity.type)}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getActivityColor(activity.movementType)}`}>
                       <span className="material-symbols-outlined text-xl">
-                        {getActivityIcon(activity.type)}
+                        {getActivityIcon(activity.movementType)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4 mb-2">
                         <div>
                           <h3 className="text-base font-semibold text-gray-800 dark:text-white">
-                            {activity.action}
+                            {getMovementLabel(activity.movementType)}
                           </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{activity.reference}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {activity.reference?.number} • {activity.sku?.skuCode}
+                          </p>
                         </div>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getStatusBadge(activity.status)}`}>
-                          {activity.status}
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                          activity.movementType.includes('INWARD') || activity.movementType.includes('IN') 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                          {activity.movementType === 'INWARD' || activity.movementType === 'TRANSFER_IN' ? '+' : '-'}{activity.quantity} units
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {activity.details}
+                        {activity.sku?.name} • {activity.warehouse?.name}
+                        {activity.batchNumber && <span className="ml-2 font-mono text-xs bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded">Batch: {activity.batchNumber}</span>}
                       </p>
+                      {activity.remarks && (
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">
+                          {activity.remarks}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500 dark:text-gray-500">
-                        {formatTimestamp(activity.timestamp)}
+                        {formatTimestamp(activity.transactionDate)}
                       </p>
                     </div>
                   </div>
@@ -189,34 +194,34 @@ const MyActivity = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-4">
-              <div className="bg-green-100 text-green-600 w-12 h-12 rounded-lg flex items-center justify-center">
+              <div className="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 w-12 h-12 rounded-lg flex items-center justify-center">
                 <span className="material-symbols-outlined">check_circle</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800 dark:text-white">0</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.completedToday}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Completed Today</p>
               </div>
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-4">
-              <div className="bg-yellow-100 text-yellow-600 w-12 h-12 rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined">pending</span>
+              <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 w-12 h-12 rounded-lg flex items-center justify-center">
+                <span className="material-symbols-outlined">trending_up</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800 dark:text-white">0</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Pending Tasks</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.thisWeek}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">This Week</p>
               </div>
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-4">
-              <div className="bg-blue-100 text-blue-600 w-12 h-12 rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined">trending_up</span>
+              <div className="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 w-12 h-12 rounded-lg flex items-center justify-center">
+                <span className="material-symbols-outlined">calendar_month</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800 dark:text-white">0</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">This Week</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.thisMonth}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">This Month</p>
               </div>
             </div>
           </div>

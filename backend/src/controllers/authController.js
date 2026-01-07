@@ -39,7 +39,8 @@ exports.register = async (req, res, next) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          assignedWarehouse: user.assignedWarehouse
+          assignedWarehouse: user.assignedWarehouse,
+          status: user.status
         },
         token
       }
@@ -108,7 +109,8 @@ exports.login = async (req, res, next) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          assignedWarehouse: user.assignedWarehouse
+          assignedWarehouse: user.assignedWarehouse,
+          status: user.status
         },
         token
       }
@@ -167,9 +169,8 @@ exports.forgotPassword = async (req, res, next) => {
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
 
-    // Debug: Check if credentials are loaded
+    // Check if email credentials are configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.error('Email credentials missing from environment variables');
       return res.status(500).json({
         status: 'error',
         message: 'Email service is not configured. Please contact administrator.'
@@ -279,3 +280,51 @@ exports.resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Change password for logged-in user
+// @route   PUT /api/auth/change-password
+// @access  Private
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate inputs
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide both current and new password'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'New password must be at least 6 characters'
+      });
+    }
+
+    // Get user with password field
+    const user = await User.findById(req.user._id).select('+password');
+
+    // Check current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Set new password
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

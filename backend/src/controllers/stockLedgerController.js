@@ -1,6 +1,7 @@
 const StockLedger = require('../models/StockLedger');
 const PurchaseOrder = require('../models/PurchaseOrder');
 const Order = require('../models/Order');
+const WarehouseTransfer = require('../models/WarehouseTransfer');
 
 // @desc    Get all stock ledger transactions
 // @route   GET /api/stock-ledger
@@ -130,4 +131,85 @@ exports.getSKUHistory = async (req, res, next) => {
   }
 };
 
+// @desc    Get current user's activity log
+// @route   GET /api/stock-ledger/my-activity
+// @access  Private
+exports.getMyActivity = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { filter = 'all', limit = 50 } = req.query;
+
+    let dateFilter = {};
+    const now = new Date();
+    
+    if (filter === 'today') {
+      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+      dateFilter = { transactionDate: { $gte: startOfDay } };
+    } else if (filter === 'week') {
+      const startOfWeek = new Date(now.setDate(now.getDate() - 7));
+      dateFilter = { transactionDate: { $gte: startOfWeek } };
+    } else if (filter === 'month') {
+      const startOfMonth = new Date(now.setDate(now.getDate() - 30));
+      dateFilter = { transactionDate: { $gte: startOfMonth } };
+    }
+
+    const activities = await StockLedger.find({
+      user: userId,
+      ...dateFilter
+    })
+      .populate('sku', 'skuCode name')
+      .populate('warehouse', 'code name')
+      .sort({ transactionDate: -1 })
+      .limit(parseInt(limit));
+
+    // Get reference details
+    for (let activity of activities) {
+      let reference = { number: 'N/A', type: activity.referenceType };
+      
+      try {
+        if (activity.referenceType === 'PO') {
+          const po = await PurchaseOrder.findById(activity.referenceId).select('poNumber');
+          if (po) reference.number = po.poNumber;
+        } else if (activity.referenceType === 'ORDER') {
+          const order = await Order.findById(activity.referenceId).select('orderNumber');
+          if (order) reference.number = order.orderNumber;
+        } else if (activity.referenceType === 'TRANSFER') {
+          const transfer = await WarehouseTransfer.findById(activity.referenceId).select('transferNumber');
+          if (transfer) reference.number = transfer.transferNumber;
+        }
+      } catch (err) {
+        // Failed to fetch reference, use default
+      }
+      
+      activity._doc.reference = reference;
+    }
+
+    // Calculate stats
+    const stats = {
+      completedToday: await StockLedger.countDocuments({
+        user: userId,
+        transactionDate: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+      }),
+      thisWeek: await StockLedger.countDocuments({
+        user: userId,
+        transactionDate: { $gte: new Date(new Date().setDate(new Date().getDate() - 7)) }
+      }),
+      thisMonth: await StockLedger.countDocuments({
+        user: userId,
+        transactionDate: { $gte: new Date(new Date().setDate(new Date().getDate() - 30)) }
+      })
+    };
+
+    res.status(200).json({
+      status: 'success',
+      results: activities.length,
+      data: { activities, stats }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = exports;
+
+

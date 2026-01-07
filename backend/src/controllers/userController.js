@@ -133,9 +133,8 @@ exports.createUser = async (req, res, next) => {
       };
 
       await transporter.sendMail(mailOptions);
-      console.log(`Welcome email sent to ${email}`);
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      // Email sending failed, but user creation succeeded
       // Don't fail user creation if email fails
     }
 

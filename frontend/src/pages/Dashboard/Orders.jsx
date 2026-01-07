@@ -23,6 +23,9 @@ const Orders = () => {
   const [user, setUser] = useState(null);
   const [batchesBySKU, setBatchesBySKU] = useState({});
   const [loadingBatches, setLoadingBatches] = useState({});
+  const [actionLoading, setActionLoading] = useState(false);
+  const [loadingOrderId, setLoadingOrderId] = useState(null);
+  const [loadingAction, setLoadingAction] = useState(null);
   
   const [formData, setFormData] = useState({
     customer: '',
@@ -103,6 +106,8 @@ const Orders = () => {
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
+    if (actionLoading) return;
+    
     try {
       // Handle View action for admin
       if (newStatus === 'VIEW') {
@@ -113,11 +118,17 @@ const Orders = () => {
       }
       
       if (newStatus === 'PICKING') {
+        setActionLoading(true);
+        setLoadingOrderId(orderId);
+        setLoadingAction('PICKING');
         const response = await orderService.getAvailableBatches(orderId);
         setAvailableBatches(response.data?.availableBatches || []);
         const order = orders.find(o => o._id === orderId);
         setSelectedOrder(order);
         setShowPickModal(true);
+        setActionLoading(false);
+        setLoadingOrderId(null);
+        setLoadingAction(null);
         return;
       }
       
@@ -126,6 +137,9 @@ const Orders = () => {
         : `Update order status to ${newStatus}?`;
       
       if (window.confirm(confirmMessage)) {
+        setActionLoading(true);
+        setLoadingOrderId(orderId);
+        setLoadingAction(newStatus);
         await orderService.updateOrderStatus(orderId, newStatus);
         const successMessage = newStatus === 'CONFIRMED'
           ? 'Order approved successfully! Warehouse staff can now process it.'
@@ -136,6 +150,10 @@ const Orders = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       alert(error.response?.data?.message || 'Failed to update status');
+    } finally {
+      setActionLoading(false);
+      setLoadingOrderId(null);
+      setLoadingAction(null);
     }
   };
 
@@ -401,7 +419,8 @@ const Orders = () => {
                             {/* View button - visible to all users at all statuses */}
                             <button
                               onClick={() => handleStatusChange(order._id, 'VIEW')}
-                              className="text-blue-600 hover:text-blue-800 font-medium"
+                              disabled={actionLoading}
+                              className="text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               View
                             </button>
@@ -410,8 +429,12 @@ const Orders = () => {
                             {nextAction && nextAction.status !== 'VIEW' && (
                               <button
                                 onClick={() => handleStatusChange(order._id, nextAction.status)}
-                                className={`text-${nextAction.color}-600 hover:text-${nextAction.color}-800 font-medium`}
+                                disabled={actionLoading}
+                                className={`text-${nextAction.color}-600 hover:text-${nextAction.color}-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1`}
                               >
+                                {loadingOrderId === order._id && loadingAction === nextAction.status && (
+                                  <div className={`w-3 h-3 border-2 border-${nextAction.color}-600 border-t-transparent rounded-full animate-spin`}></div>
+                                )}
                                 {nextAction.label}
                               </button>
                             )}
@@ -420,8 +443,12 @@ const Orders = () => {
                             {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && order.status !== 'SHIPPED' && (
                               <button
                                 onClick={() => handleStatusChange(order._id, 'CANCELLED')}
-                                className="text-red-600 hover:text-red-800 font-medium"
+                                disabled={actionLoading}
+                                className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
                               >
+                                {loadingOrderId === order._id && loadingAction === 'CANCELLED' && (
+                                  <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                                )}
                                 Cancel
                               </button>
                             )}
@@ -819,9 +846,9 @@ const Orders = () => {
                     type="submit"
                     disabled={submitting}
                     className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >\n                    {submitting && (
+                  >                    {submitting && (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    )}\n                    {submitting ? 'Creating...' : 'Create Order'}
+                    )}                    {submitting ? 'Creating...' : 'Create Order'}
                   </button>
                 </div>
               </form>

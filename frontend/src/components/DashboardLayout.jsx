@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import authService from '../services/authService';
 
 const DashboardLayout = ({ children, title }) => {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
   }, []);
+
+  const handleProfileClick = () => {
+    navigate('/dashboard/my-profile');
+  };
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
@@ -43,7 +49,10 @@ const DashboardLayout = ({ children, title }) => {
               <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
             </button>
             <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1"></div>
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-1.5 rounded-lg transition-colors">
+            <div 
+              onClick={handleProfileClick}
+              className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-1.5 rounded-lg transition-colors"
+            >
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold leading-none">{user?.name || 'Guest'}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-none mt-1">{user?.role || 'User'}</p>

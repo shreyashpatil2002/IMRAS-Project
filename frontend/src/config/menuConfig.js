@@ -4,16 +4,16 @@ export const menuConfig = {
   WAREHOUSE_STAFF: {
     label: 'Warehouse Staff',
     sections: [
-      {
-        title: 'Dashboard',
-        items: [
-          {
-            path: '/dashboard',
-            label: 'Dashboard',
-            icon: 'dashboard'
-          }
-        ]
-      },
+      // {
+      //   title: 'Dashboard',
+      //   items: [
+      //     {
+      //       path: '/dashboard',
+      //       label: 'Dashboard',
+      //       icon: 'dashboard'
+      //     }
+      //   ]
+      // },
       {
         title: 'Warehouse Operations',
         items: [
@@ -60,16 +60,16 @@ export const menuConfig = {
   INVENTORY_MANAGER: {
     label: 'Inventory Manager',
     sections: [
-      {
-        title: 'Dashboard',
-        items: [
-          {
-            path: '/dashboard',
-            label: 'Dashboard',
-            icon: 'dashboard'
-          }
-        ]
-      },
+      // {
+      //   title: 'Dashboard',
+      //   items: [
+      //     {
+      //       path: '/dashboard',
+      //       label: 'Dashboard',
+      //       icon: 'dashboard'
+      //     }
+      //   ]
+      // },
       {
         title: 'Inventory Management',
         items: [
@@ -136,16 +136,16 @@ export const menuConfig = {
   ADMIN: {
     label: 'Administrator',
     sections: [
-      {
-        title: 'Dashboard',
-        items: [
-          {
-            path: '/dashboard',
-            label: 'Dashboard',
-            icon: 'dashboard'
-          }
-        ]
-      },
+      // {
+      //   title: 'Dashboard',
+      //   items: [
+      //     {
+      //       path: '/dashboard',
+      //       label: 'Dashboard',
+      //       icon: 'dashboard'
+      //     }
+      //   ]
+      // },
       {
         title: 'Inventory Management',
         items: [
@@ -178,6 +178,11 @@ export const menuConfig = {
             path: '/dashboard/purchase-requisitions',
             label: 'Purchase Requisitions',
             icon: 'assignment'
+          },
+          {
+            path: '/dashboard/reorder-suggestions',
+            label: 'Auto Reorder',
+            icon: 'notification_important'
           },
           {
             path: '/dashboard/suppliers',
@@ -251,10 +256,6 @@ export const getMenuForRole = (role) => {
   
   // Normalize the role
   const normalizedRole = roleMapping[role] || role;
-  
-  console.log('Original role:', role);
-  console.log('Normalized role:', normalizedRole);
-  console.log('Menu found:', menuConfig[normalizedRole] ? 'Yes' : 'No');
   
   return menuConfig[normalizedRole] || menuConfig.WAREHOUSE_STAFF;
 };

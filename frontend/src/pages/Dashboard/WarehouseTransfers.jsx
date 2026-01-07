@@ -84,14 +84,10 @@ const WarehouseTransfers = () => {
   const fetchBatchesForSKU = async (itemIndex, skuId) => {
     if (!skuId || !formData.sourceWarehouse) return;
     
-    console.log(`Fetching batches for SKU ${skuId} in warehouse ${formData.sourceWarehouse}`);
-    
     try {
       setLoadingBatches(prev => ({ ...prev, [itemIndex]: true }));
       const response = await batchService.getAllBatches();
       const batchData = response?.data?.batches || response?.batches || [];
-      
-      console.log(`Total batches fetched: ${batchData.length}`);
       
       // Filter batches by warehouse and SKU
       const filteredBatches = batchData.filter(batch => {
@@ -117,14 +113,10 @@ const WarehouseTransfers = () => {
         const skuMatch = batchSKUId && String(batchSKUId) === String(skuId);
         const hasQuantity = batch.currentQuantity > 0;
         
-        console.log(`Batch ${batch.batchNumber}: {warehouseMatch: ${warehouseMatch}, skuMatch: ${skuMatch}, hasQuantity: ${hasQuantity}, quantity: ${batch.currentQuantity}}`);
-        
         // Remove status check - only verify warehouse match, SKU match, and quantity availability
         // Status field may not always match expected values ('Active' vs 'AVAILABLE')
         return warehouseMatch && skuMatch && hasQuantity;
       });
-      
-      console.log(`Filtered batches: ${filteredBatches.length}`);
       
       setAvailableBatches(prev => ({ ...prev, [itemIndex]: filteredBatches }));
     } catch (error) {
@@ -698,6 +690,7 @@ const WarehouseTransfers = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">SKU</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Quantity</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Batch Number</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Location</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Expiry Date</th>
                           </tr>
                         </thead>
@@ -709,6 +702,13 @@ const WarehouseTransfers = () => {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.quantity}</td>
                               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.batchNumber || 'N/A'}</td>
+                              <td className="px-4 py-3 text-sm font-mono text-gray-700 dark:text-gray-300">
+                                {item.location ? (
+                                  <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                                    {item.location.aisle}-{item.location.rack}-{item.location.bin}
+                                  </span>
+                                ) : 'N/A'}
+                              </td>
                               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                                 {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'}
                               </td>

@@ -11,13 +11,9 @@ const Sidebar = () => {
   
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
-    console.log('Current user:', currentUser);
     setUser(currentUser);
     if (currentUser && currentUser.role) {
-      console.log('User role:', currentUser.role);
       const menu = getMenuForRole(currentUser.role);
-      console.log('Menu loaded:', menu);
-      console.log('Menu sections:', menu?.sections?.length);
       setMenuItems(menu);
     }
   }, []);

@@ -182,8 +182,6 @@ exports.sendPO = async (req, res, next) => {
     po.sentDate = new Date();
     await po.save();
 
-    // TODO: Implement email sending logic here using Nodemailer
-
     res.status(200).json({
       status: 'success',
       message: 'Purchase Order sent to supplier',

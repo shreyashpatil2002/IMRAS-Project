@@ -287,7 +287,7 @@ const Home = () => {
           </div>
           <div className="mt-12 flex flex-col justify-between gap-4 border-t border-[#e7ebf3] pt-8 md:flex-row dark:border-gray-800">
             <p className="text-sm text-[#4c669a] dark:text-gray-500">
-              © 2023 IMRAS Inc. All rights reserved.
+              © 2025 IMRAS Inc. All rights reserved.
             </p>
             <div className="flex gap-6">
               <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-500 dark:hover:text-white" href="#">

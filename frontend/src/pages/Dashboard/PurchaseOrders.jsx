@@ -10,6 +10,9 @@ const PurchaseOrders = () => {
   const [user, setUser] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPO, setSelectedPO] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [loadingPoId, setLoadingPoId] = useState(null);
+  const [loadingAction, setLoadingAction] = useState(null);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -23,14 +26,9 @@ const PurchaseOrders = () => {
       const params = {};
       if (statusFilter) params.status = statusFilter;
       
-      console.log('Fetching POs with params:', params);
       const res = await poService.getAllPOs(params);
-      console.log('POs response:', res);
-      console.log('POs data:', res.data);
       
       const posData = res.data?.pos || res.pos || [];
-      console.log('POs extracted:', posData);
-      console.log('Number of POs:', posData.length);
       
       setPOs(Array.isArray(posData) ? posData : []);
     } catch (error) {
@@ -42,7 +40,18 @@ const PurchaseOrders = () => {
   };
 
   const handleAction = async (id, action) => {
+    if (actionLoading) return;
+    
     try {
+      if (action === 'cancel') {
+        const reason = prompt('Please provide cancellation reason:');
+        if (!reason) return;
+      }
+      
+      setActionLoading(true);
+      setLoadingPoId(id);
+      setLoadingAction(action);
+      
       if (action === 'approve') {
         await poService.approvePO(id);
         alert('PO approved!');
@@ -63,6 +72,10 @@ const PurchaseOrders = () => {
     } catch (error) {
       console.error('Error:', error);
       alert(error.response?.data?.message || 'Action failed');
+    } finally {
+      setActionLoading(false);
+      setLoadingPoId(null);
+      setLoadingAction(null);
     }
   };
 
@@ -159,26 +172,58 @@ const PurchaseOrders = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm space-x-2">
-                        <button onClick={() => handleViewPO(po._id)} className="text-blue-600 hover:text-blue-800 font-medium">
+                        <button 
+                          onClick={() => handleViewPO(po._id)} 
+                          disabled={actionLoading}
+                          className="text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                           View
                         </button>
                         {canApprove(po) && (
-                          <button onClick={() => handleAction(po._id, 'approve')} className="text-green-600 hover:text-green-800 font-medium">
+                          <button 
+                            onClick={() => handleAction(po._id, 'approve')} 
+                            disabled={actionLoading}
+                            className="text-green-600 hover:text-green-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          >
+                            {loadingPoId === po._id && loadingAction === 'approve' && (
+                              <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                            )}
                             Approve
                           </button>
                         )}
                         {canSend(po) && (
-                          <button onClick={() => handleAction(po._id, 'send')} className="text-purple-600 hover:text-purple-800 font-medium">
+                          <button 
+                            onClick={() => handleAction(po._id, 'send')} 
+                            disabled={actionLoading}
+                            className="text-purple-600 hover:text-purple-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          >
+                            {loadingPoId === po._id && loadingAction === 'send' && (
+                              <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                            )}
                             Send
                           </button>
                         )}
                         {canClose(po) && (
-                          <button onClick={() => handleAction(po._id, 'close')} className="text-purple-600 hover:text-purple-800">
+                          <button 
+                            onClick={() => handleAction(po._id, 'close')} 
+                            disabled={actionLoading}
+                            className="text-purple-600 hover:text-purple-800 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          >
+                            {loadingPoId === po._id && loadingAction === 'close' && (
+                              <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                            )}
                             Close
                           </button>
                         )}
                         {canCancel(po) && (
-                          <button onClick={() => handleAction(po._id, 'cancel')} className="text-red-600 hover:text-red-800">
+                          <button 
+                            onClick={() => handleAction(po._id, 'cancel')} 
+                            disabled={actionLoading}
+                            className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          >
+                            {loadingPoId === po._id && loadingAction === 'cancel' && (
+                              <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                            )}
                             Cancel
                           </button>
                         )}
@@ -287,38 +332,55 @@ const PurchaseOrders = () => {
                   {canApprove(selectedPO) && (
                     <button
                       onClick={() => { handleAction(selectedPO._id, 'approve'); setShowViewModal(false); }}
-                      className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                      disabled={actionLoading}
+                      className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                      {loadingPoId === selectedPO._id && loadingAction === 'approve' && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      )}
                       Approve PO
                     </button>
                   )}
                   {canSend(selectedPO) && (
                     <button
                       onClick={() => { handleAction(selectedPO._id, 'send'); setShowViewModal(false); }}
-                      className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                      disabled={actionLoading}
+                      className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                      {loadingPoId === selectedPO._id && loadingAction === 'send' && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      )}
                       Send to Supplier
                     </button>
                   )}
                   {canClose(selectedPO) && (
                     <button
                       onClick={() => { handleAction(selectedPO._id, 'close'); setShowViewModal(false); }}
-                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                      disabled={actionLoading}
+                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                      {loadingPoId === selectedPO._id && loadingAction === 'close' && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      )}
                       Close PO
                     </button>
                   )}
                   {canCancel(selectedPO) && (
                     <button
                       onClick={() => { handleAction(selectedPO._id, 'cancel'); setShowViewModal(false); }}
-                      className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
+                      disabled={actionLoading}
+                      className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                      {loadingPoId === selectedPO._id && loadingAction === 'cancel' && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      )}
                       Cancel PO
                     </button>
                   )}
                   <button
                     onClick={() => { setShowViewModal(false); setSelectedPO(null); }}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
+                    disabled={actionLoading}
+                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Close
                   </button>

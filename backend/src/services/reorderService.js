@@ -11,44 +11,77 @@ class ReorderService {
     
     const suggestions = [];
 
+    // Get pending PRs for this warehouse to check for duplicates
+    const pendingPRs = await PurchaseRequisition.find({
+      warehouse: warehouseId || { $exists: true },
+      status: { $in: ['DRAFT', 'SUBMITTED', 'APPROVED'] }
+    }).select('items warehouse');
+
+    // Create a set of SKU IDs that already have pending PRs
+    const skusWithPendingPR = new Set();
+    pendingPRs.forEach(pr => {
+      pr.items.forEach(item => {
+        const key = `${pr.warehouse}_${item.sku}`;
+        skusWithPendingPR.add(key);
+      });
+    });
+
     for (const item of skusBelowReorder) {
       const sku = await SKU.findById(item.sku).populate('supplier');
       
-      if (!sku || !sku.supplier) continue;
+      if (!sku) continue;
+
+      // Check if this SKU already has a pending PR for this warehouse
+      const prKey = `${item.warehouse}_${item.sku}`;
+      const hasPendingPR = skusWithPendingPR.has(prKey);
 
       // Calculate order quantity considering lead time and safety stock
-      const orderQty = Math.max(
-        sku.maxStock - item.currentStock,
-        sku.safetyStock + (sku.minStock - item.currentStock)
-      );
+      const orderQty = item.recommendedOrderQty;
 
-      // Get best price from supplier pricing tiers
-      const supplier = await Supplier.findById(sku.supplier);
-      let unitPrice = sku.unitCost;
+      // Get best price from supplier pricing tiers if supplier exists
+      let unitPrice = sku.unitCost || 0;
+      let supplier = null;
 
-      if (supplier && supplier.pricingTiers && supplier.pricingTiers.length > 0) {
-        const applicableTiers = supplier.pricingTiers
-          .filter(tier => orderQty >= tier.minQty)
-          .sort((a, b) => b.minQty - a.minQty);
+      if (sku.supplier) {
+        supplier = await Supplier.findById(sku.supplier);
         
-        if (applicableTiers.length > 0) {
-          unitPrice = applicableTiers[0].pricePerUnit;
+        if (supplier && supplier.pricingTiers && supplier.pricingTiers.length > 0) {
+          const applicableTiers = supplier.pricingTiers
+            .filter(tier => orderQty >= tier.minQty)
+            .sort((a, b) => b.minQty - a.minQty);
+          
+          if (applicableTiers.length > 0) {
+            unitPrice = applicableTiers[0].pricePerUnit;
+          }
         }
       }
 
       suggestions.push({
-        sku: item.sku,
-        skuCode: item.skuCode,
-        name: sku.name,
+        sku: {
+          _id: sku._id,
+          skuCode: sku.skuCode,
+          name: sku.name,
+          description: sku.description,
+          unit: sku.unit
+        },
         warehouse: item.warehouse,
+        warehouseName: item.warehouseName,
         currentStock: item.currentStock,
         minStock: item.minStock,
+        maxStock: item.maxStock,
+        safetyStock: item.safetyStock,
         recommendedOrderQty: orderQty,
-        supplier: sku.supplier,
+        supplier: supplier ? {
+          _id: supplier._id,
+          name: supplier.name,
+          email: supplier.email,
+          phone: supplier.phone
+        } : null,
         unitPrice,
         totalCost: orderQty * unitPrice,
         urgency: item.urgency,
-        leadTime: sku.leadTime
+        leadTime: sku.leadTime || 7,
+        hasPendingPR: hasPendingPR
       });
     }
 
@@ -61,20 +94,16 @@ class ReorderService {
       throw new Error('No suggestions provided');
     }
 
-    // Group by warehouse
-    const warehouseSuggestions = suggestions.filter(s => 
-      s.warehouse.toString() === warehouseId.toString()
-    );
-
-    if (warehouseSuggestions.length === 0) {
-      throw new Error('No suggestions for this warehouse');
+    if (!warehouseId) {
+      throw new Error('Warehouse ID is required');
     }
 
-    const items = warehouseSuggestions.map(s => ({
+    // Suggestions from frontend are already filtered, just map to items format
+    const items = suggestions.map(s => ({
       sku: s.sku,
-      requestedQuantity: s.recommendedOrderQty,
+      requestedQuantity: s.requestedQuantity,
       urgency: s.urgency,
-      remarks: `Auto-generated - Current stock: ${s.currentStock}, Min stock: ${s.minStock}`
+      remarks: s.remarks || 'Auto-generated reorder suggestion'
     }));
 
     const pr = await PurchaseRequisition.create({

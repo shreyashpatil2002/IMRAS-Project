@@ -16,6 +16,8 @@ const PurchaseRequisitions = () => {
   const [selectedPRForView, setSelectedPRForView] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [user, setUser] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingPR, setEditingPR] = useState(null);
   
   const [formData, setFormData] = useState({
     warehouse: '',
@@ -51,35 +53,20 @@ const PurchaseRequisitions = () => {
       const params = {};
       if (statusFilter) params.status = statusFilter;
       
-      console.log('Fetching PRs with params:', params);
-      
       const [prsRes, skusRes, warehousesRes] = await Promise.all([
         prService.getAllPRs(params),
         skuService.getAllSKUs(),
         warehouseService.getAllWarehouses()
       ]);
       
-      console.log('PRs response:', prsRes);
-      console.log('PRs response.data:', prsRes.data);
-      console.log('SKUs response:', skusRes);
-      console.log('Warehouses response:', warehousesRes);
-      
       // Handle different response structures
       const prsData = prsRes.data?.prs || prsRes.prs || prsRes.data || [];
       const skusData = skusRes.skus || skusRes.data?.skus || [];
       const warehousesData = warehousesRes.warehouses || warehousesRes.data?.warehouses || [];
       
-      console.log('PRs data extracted:', prsData);
-      console.log('PRs data is array?', Array.isArray(prsData));
-      console.log('Number of PRs:', Array.isArray(prsData) ? prsData.length : 0);
-      
       setPRs(Array.isArray(prsData) ? prsData : []);
       setSKUs(Array.isArray(skusData) ? skusData : []);
       setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
-      
-      console.log('SKUs loaded:', skusData.length);
-      console.log('Warehouses loaded:', warehousesData.length);
-      console.log('PRs set to state, count:', Array.isArray(prsData) ? prsData.length : 0);
     } catch (error) {
       console.error('Error fetching data:', error);
       console.error('Error details:', error.response?.data);
@@ -190,6 +177,89 @@ const PurchaseRequisitions = () => {
     }
   };
 
+  const handleEdit = (pr) => {
+    // Populate form with PR data for editing
+    setEditingPR(pr);
+    setIsEditMode(true);
+    setFormData({
+      warehouse: pr.warehouse?._id || pr.warehouse,
+      priority: pr.priority || 'MEDIUM',
+      items: pr.items.map(item => ({
+        sku: item.sku?._id || item.sku,
+        requestedQuantity: item.requestedQuantity,
+        urgency: item.urgency || 'MEDIUM',
+        remarks: item.remarks || ''
+      })),
+      requiredByDate: pr.requiredByDate ? new Date(pr.requiredByDate).toISOString().split('T')[0] : ''
+    });
+    
+    // Load selected SKUs and stocks for each item
+    const newSelectedSKUs = {};
+    pr.items.forEach((item, index) => {
+      if (item.sku) {
+        newSelectedSKUs[index] = typeof item.sku === 'object' ? item.sku : null;
+      }
+    });
+    setSelectedSKUs(newSelectedSKUs);
+    
+    // Load stocks for each item
+    pr.items.forEach(async (item, index) => {
+      if (item.sku && pr.warehouse) {
+        try {
+          const skuId = item.sku?._id || item.sku;
+          const warehouseId = pr.warehouse?._id || pr.warehouse;
+          const stockData = await skuService.getSKUStock(skuId, warehouseId);
+          setCurrentStocks(prev => ({ ...prev, [index]: stockData.currentStock || 0 }));
+        } catch (error) {
+          console.error('Error fetching stock:', error);
+          setCurrentStocks(prev => ({ ...prev, [index]: 0 }));
+        }
+      }
+    });
+    
+    setShowViewModal(false);
+    setShowModal(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (submitting || !editingPR) return;
+    
+    try {
+      setSubmitting(true);
+      const prData = {
+        warehouse: formData.warehouse,
+        items: formData.items.map(item => ({
+          sku: item.sku,
+          requestedQuantity: parseInt(item.requestedQuantity),
+          urgency: item.urgency,
+          remarks: item.remarks
+        })),
+        requiredByDate: formData.requiredByDate || undefined
+      };
+      
+      await prService.updatePR(editingPR._id, prData);
+      alert('Purchase Requisition updated successfully!');
+      setShowModal(false);
+      setIsEditMode(false);
+      setEditingPR(null);
+      resetForm();
+      fetchData();
+    } catch (error) {
+      console.error('Error updating PR:', error);
+      alert(error.response?.data?.message || 'Failed to update PR');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditMode(false);
+    setEditingPR(null);
+    setShowModal(false);
+    resetForm();
+  };
+
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
@@ -247,31 +317,36 @@ const PurchaseRequisitions = () => {
     const prCreatorId = pr.requestedBy?._id || pr.requestedBy;
     const userId = user?._id || user?.id;
     const result = String(prCreatorId) === String(userId);
-    console.log('isCreator check:', { prCreatorId, userId, result, prStatus: pr.status, userRole: user?.role });
     return result;
   };
 
   // Everyone can view PRs
   const canView = (pr) => true;
   
+  // Only admin or creator manager can edit DRAFT PRs
+  const canEdit = (pr) => {
+    if (pr.status !== 'DRAFT') return false;
+    if (user?.role === 'ADMIN') return true;
+    // Only the creator manager can edit their own PR
+    const result = isCreator(pr) && user?.role === 'INVENTORY_MANAGER';
+    return result;
+  };
+  
   // Only creator manager can submit DRAFT PRs
   const canSubmit = (pr) => {
     const result = pr.status === 'DRAFT' && isCreator(pr) && user?.role === 'INVENTORY_MANAGER';
-    console.log('canSubmit:', result, { status: pr.status, isCreator: isCreator(pr), role: user?.role });
     return result;
   };
   
   // Only admin can approve SUBMITTED PRs
   const canApprove = (pr) => {
     const result = pr.status === 'SUBMITTED' && user?.role === 'ADMIN';
-    console.log('canApprove:', result, { status: pr.status, role: user?.role });
     return result;
   };
   
   // Only admin can reject SUBMITTED PRs
   const canReject = (pr) => {
     const result = pr.status === 'SUBMITTED' && user?.role === 'ADMIN';
-    console.log('canReject:', result, { status: pr.status, role: user?.role });
     return result;
   };
   
@@ -280,14 +355,8 @@ const PurchaseRequisitions = () => {
     if (pr.status !== 'APPROVED') return false;
     if (user?.role === 'ADMIN') return true;
     if (user?.role === 'INVENTORY_MANAGER' && isCreator(pr)) return true;
-    console.log('canConvert:', false, { status: pr.status, role: user?.role, isCreator: isCreator(pr) });
     return false;
   };
-
-  console.log('Current User:', user);
-  console.log('User Role:', user?.role);
-  console.log('Current PRs in state:', prs);
-  console.log('PRs count:', prs.length);
 
   return (
     <DashboardLayout>
@@ -398,21 +467,34 @@ const PurchaseRequisitions = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Create Purchase Requisition</h2>
-                  <button onClick={() => { setShowModal(false); resetForm(); }} className="text-gray-400 hover:text-gray-600">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    {isEditMode ? 'Edit Purchase Requisition' : 'Create Purchase Requisition'}
+                  </h2>
+                  <button 
+                    onClick={() => { 
+                      if (isEditMode) {
+                        cancelEdit();
+                      } else {
+                        setShowModal(false); 
+                        resetForm();
+                      }
+                    }} 
+                    className="text-gray-400 hover:text-gray-600"
+                  >
                     <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
               </div>
               
-              <form onSubmit={handleSubmit} className="p-6">
-                {/* Auto-Generated Fields Section */}
+              <form onSubmit={isEditMode ? handleUpdate : handleSubmit} className="p-6">{/* Auto-Generated Fields Section */}
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">System Information</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500 dark:text-gray-400">PR Number:</span>
-                      <span className="ml-2 text-gray-700 dark:text-gray-300">Auto-generated</span>
+                      <span className="ml-2 text-gray-700 dark:text-gray-300">
+                        {isEditMode ? editingPR?.prNumber : 'Auto-generated'}
+                      </span>
                     </div>
                     <div>
                       <span className="text-gray-500 dark:text-gray-400">Request Date:</span>
@@ -656,7 +738,14 @@ const PurchaseRequisitions = () => {
                 <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="button"
-                    onClick={() => { setShowModal(false); resetForm(); }}
+                    onClick={() => { 
+                      if (isEditMode) {
+                        cancelEdit();
+                      } else {
+                        setShowModal(false); 
+                        resetForm();
+                      }
+                    }}
                     className="flex-1 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-all"
                   >
                     Cancel
@@ -667,7 +756,7 @@ const PurchaseRequisitions = () => {
                     className="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >                    {submitting && (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    )}                 {submitting ? 'Creating...' : 'Create PR'}
+                    )}                 {submitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update PR' : 'Create PR')}
                   </button>
                 </div>
               </form>
@@ -824,18 +913,33 @@ const PurchaseRequisitions = () => {
                 </div>
 
                 <div className="mt-6 flex justify-between">
-                  {user?.role === 'ADMIN' && (selectedPRForView.status === 'DRAFT' || selectedPRForView.status === 'REJECTED') && (
-                    <button
-                      onClick={() => handleAction(selectedPRForView._id, 'delete')}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                      Delete PR
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {/* Edit Button - Only for DRAFT status and authorized users */}
+                    {canEdit(selectedPRForView) && (
+                      <button
+                        onClick={() => handleEdit(selectedPRForView)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                        Edit PR
+                      </button>
+                    )}
+                    
+                    {/* Delete Button - Only for ADMIN on DRAFT or REJECTED */}
+                    {user?.role === 'ADMIN' && (selectedPRForView.status === 'DRAFT' || selectedPRForView.status === 'REJECTED') && (
+                      <button
+                        onClick={() => handleAction(selectedPRForView._id, 'delete')}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                        Delete PR
+                      </button>
+                    )}
+                  </div>
+                  
                   <button
                     onClick={() => setShowViewModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors ml-auto"
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
                   >
                     Close
                   </button>

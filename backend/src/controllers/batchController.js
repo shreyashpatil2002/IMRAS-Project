@@ -8,7 +8,7 @@ const SKU = require('../models/SKU');
 // @access  Private
 exports.getAllBatches = async (req, res, next) => {
   try {
-    const { status, search } = req.query;
+    const { status, search, page = 1, limit = 100 } = req.query;
     let query = {};
 
     // Filter by status
@@ -21,15 +21,28 @@ exports.getAllBatches = async (req, res, next) => {
       query.batchNumber = { $regex: search, $options: 'i' };
     }
 
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Batch.countDocuments(query);
+
     const batches = await Batch.find(query)
       .populate('product', 'name sku category')
       .populate('supplier', 'name email phone')
       .populate('warehouse', 'name code location')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean(); // Use lean() for better performance
 
     res.status(200).json({
       status: 'success',
       results: batches.length,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      },
       data: { batches }
     });
   } catch (error) {
@@ -151,8 +164,6 @@ exports.updateBatch = async (req, res, next) => {
           ? `${ledgerEntry.remarks} | Putaway: ${newLocation}` 
           : `Putaway: Moved to ${newLocation}`;
         await ledgerEntry.save();
-        
-        console.log(`Updated stock ledger location for batch ${batch.batchNumber} to ${newLocation}`);
       }
     }
 

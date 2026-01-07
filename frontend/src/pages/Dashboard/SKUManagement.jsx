@@ -57,20 +57,9 @@ const SKUManagement = () => {
         supplierService.getAllSuppliers({ status: 'Active' })
       ]);
 
-      console.log('Full warehouse response:', warehousesRes);
-      console.log('Warehouses data:', warehousesRes.data);
-      console.log('Warehouses array:', warehousesRes.warehouses);
-      
-      console.log('Full SKU response:', skusRes);
-      console.log('SKU data:', skusRes.data);
-
       setSKUs(skusRes.skus || []);
       setWarehouses(warehousesRes.warehouses || []);
       setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : suppliersRes.data?.suppliers || []);
-      
-      console.log('SKUs loaded:', skusRes.skus || []);
-      console.log('Warehouses loaded:', warehousesRes.warehouses);
-      console.log('Warehouses state set to:', warehousesRes.warehouses || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       alert('Failed to load data');

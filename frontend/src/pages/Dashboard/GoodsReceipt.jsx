@@ -19,6 +19,7 @@ const GoodsReceipt = () => {
   const [transferReceiveData, setTransferReceiveData] = useState({ items: [] });
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('po'); // 'po' or 'transfer'
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -30,7 +31,6 @@ const GoodsReceipt = () => {
     try {
       setLoading(true);
       const currentUser = authService.getCurrentUser();
-      console.log('Current User:', currentUser);
       
       // Fetch both SENT and PARTIALLY_RECEIVED POs
       const [sentPOs, partialPOs, warehousesRes, transfersRes] = await Promise.all([
@@ -130,6 +130,8 @@ const GoodsReceipt = () => {
 
   const handleSubmitReceive = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    
     try {
       // Filter items with acceptedCount > 0 (only accepted items go to inventory)
       const itemsToReceive = receiveData.items.filter(item => item.acceptedCount > 0);
@@ -174,9 +176,8 @@ const GoodsReceipt = () => {
         expiryDate: item.expiryDate || undefined
       }));
 
-      console.log('Submitting receive data:', { poId: selectedPO._id, items });
+      setSubmitting(true);
       const response = await poService.receivePO(selectedPO._id, items);
-      console.log('Receive response:', response);
       
       alert(`Goods received successfully! ${items.length} item(s) received and stock updated.`);
       setShowReceiveModal(false);
@@ -185,6 +186,8 @@ const GoodsReceipt = () => {
     } catch (error) {
       console.error('Error receiving goods:', error);
       alert(error.response?.data?.message || 'Failed to receive goods');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -233,6 +236,8 @@ const GoodsReceipt = () => {
 
   const handleSubmitTransferReceive = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    
     try {
       const itemsToReceive = transferReceiveData.items.filter(item => item.acceptedCount > 0);
 
@@ -241,7 +246,7 @@ const GoodsReceipt = () => {
         return;
       }
 
-      console.log('Submitting transfer receive:', { transferId: selectedTransfer._id });
+      setSubmitting(true);
       await transferService.receiveTransfer(selectedTransfer._id);
       
       alert(`Transfer received successfully! Items are now in RECEIVING area. Please proceed with putaway.`);
@@ -251,6 +256,8 @@ const GoodsReceipt = () => {
     } catch (error) {
       console.error('Error receiving transfer:', error);
       alert(error.response?.data?.message || 'Failed to receive transfer');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -586,14 +593,19 @@ const GoodsReceipt = () => {
                 <div className="flex gap-3 px-6 pb-6">
                   <button
                     type="submit"
-                    className="flex-1 bg-primary text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow-md"
+                    disabled={submitting}
+                    className="flex-1 bg-primary text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Confirm Receipt
+                    {submitting && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}
+                    {submitting ? 'Processing...' : 'Confirm Receipt'}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowReceiveModal(false); setSelectedPO(null); }}
-                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-3 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors font-medium"
+                    disabled={submitting}
+                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-3 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
@@ -749,14 +761,19 @@ const GoodsReceipt = () => {
                 <div className="flex gap-3 px-6 pb-6">
                   <button
                     type="submit"
-                    className="flex-1 bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow-md"
+                    disabled={submitting}
+                    className="flex-1 bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Confirm Transfer Receipt
+                    {submitting && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}
+                    {submitting ? 'Processing...' : 'Confirm Transfer Receipt'}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowTransferModal(false); setSelectedTransfer(null); }}
-                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-3 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors font-medium"
+                    disabled={submitting}
+                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-3 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>

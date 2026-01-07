@@ -96,7 +96,6 @@ const Suppliers = () => {
 
   const handleCreateOrder = (e) => {
     e.preventDefault();
-    console.log('New order for:', selectedSupplier, orderData);
     setShowOrderModal(false);
     setOrderData({ items: '', quantity: '', expectedDate: '', notes: '' });
   };

@@ -138,7 +138,7 @@ const About = () => {
                 Our Journey
               </h2>
               <p className="mt-4 text-[#4c669a] dark:text-gray-400">
-                From a small warehouse office to a global solution.
+                From concept to a comprehensive inventory management solution - Built in India.
               </p>
             </div>
             <div className="relative ml-4 md:ml-0 space-y-12">
@@ -146,13 +146,12 @@ const About = () => {
               <div className="relative flex flex-col md:flex-row items-start md:items-center group">
                 <div className="absolute -left-2 top-0 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm dark:border-gray-900 md:left-1/2 md:-ml-2 md:top-1/2 md:-translate-y-1/2 z-10"></div>
                 <div className="ml-8 md:ml-0 w-full md:w-1/2 md:pr-12 md:text-right">
-                  <span className="text-sm font-bold text-primary">2020</span>
+                  <span className="text-sm font-bold text-primary">November 2025</span>
                   <h4 className="text-xl font-bold text-[#0d121b] dark:text-white mt-1">
-                    Founded in Seattle
+                    Core Development Complete
                   </h4>
                   <p className="mt-2 text-[#4c669a] dark:text-gray-400 text-sm">
-                    Started as a consulting firm helping local retailers fix
-                    their messy inventory sheets.
+                    Built full-stack inventory management system with multi-warehouse support, batch tracking, purchase management, and automated reorder suggestions.
                   </p>
                 </div>
                 <div className="hidden md:block w-1/2 pl-12"></div>
@@ -161,43 +160,27 @@ const About = () => {
                 <div className="absolute -left-2 top-0 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm dark:border-gray-900 md:left-1/2 md:-ml-2 md:top-1/2 md:-translate-y-1/2 z-10"></div>
                 <div className="hidden md:block w-1/2 pr-12"></div>
                 <div className="ml-8 md:ml-0 md:pl-12 w-full md:w-1/2">
-                  <span className="text-sm font-bold text-primary">2021</span>
+                  <span className="text-sm font-bold text-primary">December 2025</span>
                   <h4 className="text-xl font-bold text-[#0d121b] dark:text-white mt-1">
-                    Launch of IMRAS Beta
+                    Testing & Refinement
                   </h4>
                   <p className="mt-2 text-[#4c669a] dark:text-gray-400 text-sm">
-                    Released our first cloud-based prototype to 50 beta testers.
-                    Their feedback shaped our core features.
+                    Extensive testing of all modules, bug fixes, UI/UX improvements, and role-based access control implementation with real-world scenarios.
                   </p>
                 </div>
               </div>
               <div className="relative flex flex-col md:flex-row items-start md:items-center group">
                 <div className="absolute -left-2 top-0 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm dark:border-gray-900 md:left-1/2 md:-ml-2 md:top-1/2 md:-translate-y-1/2 z-10"></div>
                 <div className="ml-8 md:ml-0 w-full md:w-1/2 md:pr-12 md:text-right">
-                  <span className="text-sm font-bold text-primary">2022</span>
+                  <span className="text-sm font-bold text-primary">January 2026</span>
                   <h4 className="text-xl font-bold text-[#0d121b] dark:text-white mt-1">
-                    Series A Funding
+                    Production Ready & Security Hardening
                   </h4>
                   <p className="mt-2 text-[#4c669a] dark:text-gray-400 text-sm">
-                    Secured $5M in funding to expand our engineering team and
-                    introduce AI-driven forecasting.
+                    Implemented enterprise-grade security with rate limiting, input sanitization, JWT authentication, and performance optimizations. Ready for deployment.
                   </p>
                 </div>
                 <div className="hidden md:block w-1/2 pl-12"></div>
-              </div>
-              <div className="relative flex flex-col md:flex-row items-start md:items-center group">
-                <div className="absolute -left-2 top-0 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm dark:border-gray-900 md:left-1/2 md:-ml-2 md:top-1/2 md:-translate-y-1/2 z-10"></div>
-                <div className="hidden md:block w-1/2 pr-12"></div>
-                <div className="ml-8 md:ml-0 md:pl-12 w-full md:w-1/2">
-                  <span className="text-sm font-bold text-primary">2023 - Present</span>
-                  <h4 className="text-xl font-bold text-[#0d121b] dark:text-white mt-1">
-                    Global Expansion
-                  </h4>
-                  <p className="mt-2 text-[#4c669a] dark:text-gray-400 text-sm">
-                    Now serving customers in over 15 countries with
-                    enterprise-grade security and 24/7 support.
-                  </p>
-                </div>
               </div>
             </div>
           </div>
@@ -285,7 +268,7 @@ const About = () => {
           </div>
           <div className="mt-12 flex flex-col justify-between gap-4 border-t border-[#e7ebf3] pt-8 md:flex-row dark:border-gray-800">
             <p className="text-sm text-[#4c669a] dark:text-gray-500">
-              © 2023 IMRAS Inc. All rights reserved.
+              © 2025 IMRAS Inc. All rights reserved.
             </p>
             <div className="flex gap-6">
               <a className="text-sm text-[#4c669a] hover:text-primary dark:text-gray-500 dark:hover:text-white" href="#">

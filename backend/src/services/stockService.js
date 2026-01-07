@@ -98,29 +98,62 @@ class StockService {
     };
   }
 
-  // Get SKUs below reorder point across all warehouses
+  // Get SKUs below reorder point across all warehouses or specific warehouse
   async getSKUsBelowReorderPoint(warehouseId = null) {
-    const skus = await SKU.find({ isActive: true });
+    const Product = require('../models/Product');
+    const Batch = require('../models/Batch');
+    const Warehouse = require('../models/Warehouse');
+    
+    const skus = await SKU.find({ isActive: true }).populate('supplier');
     const belowReorderPoint = [];
 
-    for (const sku of skus) {
-      const checkWarehouse = warehouseId || sku.defaultWarehouse;
-      if (!checkWarehouse) continue;
+    // Get all warehouses or specific warehouse
+    const warehouses = warehouseId 
+      ? [await Warehouse.findById(warehouseId)]
+      : await Warehouse.find({ isActive: true });
 
-      const currentStock = await this.getCurrentStock(sku._id, checkWarehouse);
-      
-      if (currentStock <= sku.minStock) {
-        belowReorderPoint.push({
-          sku: sku._id,
-          skuCode: sku.skuCode,
-          name: sku.name,
-          warehouse: checkWarehouse,
-          currentStock,
-          minStock: sku.minStock,
-          safetyStock: sku.safetyStock,
-          recommendedOrderQty: sku.maxStock - currentStock,
-          urgency: currentStock <= sku.safetyStock ? 'URGENT' : 'HIGH'
+    for (const warehouse of warehouses) {
+      if (!warehouse) continue;
+
+      for (const sku of skus) {
+        // Find all products that have this SKU code
+        const products = await Product.find({ sku: sku.skuCode });
+        
+        if (products.length === 0) continue;
+
+        const productIds = products.map(p => p._id);
+        
+        // Sum up currentQuantity from all batches for these products at this warehouse
+        const batches = await Batch.find({
+          product: { $in: productIds },
+          warehouse: warehouse._id
         });
+        
+        const currentStock = batches.reduce((sum, batch) => sum + (batch.currentQuantity || 0), 0);
+        
+        // Check if below minimum stock level
+        if (currentStock <= sku.minStock) {
+          const recommendedOrderQty = Math.max(
+            sku.maxStock - currentStock,
+            sku.safetyStock || sku.minStock
+          );
+
+          belowReorderPoint.push({
+            sku: sku._id,
+            skuCode: sku.skuCode,
+            name: sku.name,
+            warehouse: warehouse._id,
+            warehouseName: warehouse.name,
+            currentStock,
+            minStock: sku.minStock,
+            maxStock: sku.maxStock,
+            safetyStock: sku.safetyStock || 0,
+            recommendedOrderQty,
+            urgency: currentStock === 0 ? 'URGENT' : 
+                     currentStock <= (sku.safetyStock || 0) ? 'URGENT' : 
+                     currentStock <= sku.minStock * 0.5 ? 'HIGH' : 'MEDIUM'
+          });
+        }
       }
     }
 

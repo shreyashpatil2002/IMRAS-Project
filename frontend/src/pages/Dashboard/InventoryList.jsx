@@ -57,8 +57,6 @@ const InventoryList = () => {
       if (dateTo) params.dateTo = dateTo;
       params.limit = 200; // Fetch more records
 
-      console.log('Fetching stock ledger with params:', params);
-
       // Fetch stock ledger transactions, SKUs, and warehouses
       const [transactionsRes, skusRes, warehousesRes] = await Promise.all([
         stockLedgerService.getAllTransactions(params),
@@ -66,16 +64,10 @@ const InventoryList = () => {
         warehouseService.getAllWarehouses()
       ]);
 
-      console.log('Transactions response:', transactionsRes);
-      console.log('SKUs response:', skusRes);
-      console.log('Warehouses response:', warehousesRes);
-
       // Handle response structure
       const transactionsList = transactionsRes.data?.transactions || transactionsRes.transactions || [];
       const skusList = skusRes.data?.skus || skusRes.skus || [];
       const warehousesList = warehousesRes.data?.warehouses || warehousesRes.warehouses || [];
-
-      console.log('Extracted transactions:', transactionsList.length);
 
       setTransactions(transactionsList);
       setSKUs(skusList);

@@ -50,9 +50,29 @@ exports.getTransfer = async (req, res, next) => {
       });
     }
 
+    // Fetch batch location for each item
+    const Batch = require('../models/Batch');
+    const itemsWithLocation = await Promise.all(transfer.items.map(async (item) => {
+      if (item.batchNumber) {
+        const batch = await Batch.findOne({
+          batchNumber: item.batchNumber,
+          warehouse: transfer.sourceWarehouse._id
+        }).select('location');
+        
+        return {
+          ...item.toObject(),
+          location: batch?.location || null
+        };
+      }
+      return item.toObject();
+    }));
+
+    const transferData = transfer.toObject();
+    transferData.items = itemsWithLocation;
+
     res.status(200).json({
       status: 'success',
-      data: { transfer }
+      data: { transfer: transferData }
     });
   } catch (error) {
     next(error);

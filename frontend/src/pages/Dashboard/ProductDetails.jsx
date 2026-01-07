@@ -174,15 +174,15 @@ const ProductDetails = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Unit Cost</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">$12.50</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">12.50</p>
               </div>
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Selling Price</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">$24.99</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">24.99</p>
               </div>
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Total Value</p>
-                <p className="text-xl font-bold text-primary">$11,245.50</p>
+                <p className="text-xl font-bold text-primary">11,245.50</p>
               </div>
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Margin</p>

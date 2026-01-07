@@ -15,7 +15,6 @@ import ResetPassword from './pages/ResetPassword';
 
 // Dashboard Pages
 import Dashboard from './pages/Dashboard/Dashboard';
-import AddProduct from './pages/Dashboard/AddProduct';
 import InventoryList from './pages/Dashboard/InventoryList';
 import BatchTracking from './pages/Dashboard/BatchTracking';
 import Orders from './pages/Dashboard/Orders';
@@ -26,6 +25,7 @@ import Reports from './pages/Dashboard/Reports';
 import Suppliers from './pages/Dashboard/Suppliers';
 import UserManagement from './pages/Dashboard/UserManagement';
 import Settings from './pages/Dashboard/Settings';
+import MyProfile from './pages/Dashboard/MyProfile';
 import HelpSupport from './pages/Dashboard/HelpSupport';
 import SKUManagement from './pages/Dashboard/SKUManagement';
 import WarehouseManagement from './pages/Dashboard/WarehouseManagement';
@@ -65,7 +65,6 @@ function App() {
         <Route path="/dashboard/putaway" element={<ProtectedRoute><Putaway /></ProtectedRoute>} />
         <Route path="/dashboard/my-activity" element={<ProtectedRoute><MyActivity /></ProtectedRoute>} />
         <Route path="/dashboard/reorder-suggestions" element={<ProtectedRoute><ReorderSuggestions /></ProtectedRoute>} />
-        <Route path="/dashboard/add-product" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
         <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/dashboard/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
         <Route path="/dashboard/outbound-dispatch" element={<ProtectedRoute><Dispatch /></ProtectedRoute>} />
@@ -73,8 +72,7 @@ function App() {
         <Route path="/dashboard/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/dashboard/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
         <Route path="/dashboard/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-        <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/dashboard/help" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />        <Route path="/dashboard/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />        <Route path="/dashboard/help" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />
       </Routes>
     </Router>
   );

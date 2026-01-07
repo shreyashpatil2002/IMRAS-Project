@@ -2,7 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const compression = require('compression');
 const connectDB = require('./config/database');
+const { securityHeaders, sanitizeBody, preventNoSQLInjection } = require('./middleware/security');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -26,14 +29,25 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
+// Compression middleware
+app.use(compression());
+
+// Security middleware
+app.use(securityHeaders);
+app.use(preventNoSQLInjection);
+
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(sanitizeBody);
 app.use(morgan('dev'));
+
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
 
 // Health check route
 app.get('/api/health', (req, res) => {
