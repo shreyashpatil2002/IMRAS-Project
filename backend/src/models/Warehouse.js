@@ -58,8 +58,7 @@ const warehouseSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-warehouseSchema.index({ code: 1 });
+// Index for faster queries - code already has unique index
 warehouseSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model('Warehouse', warehouseSchema);

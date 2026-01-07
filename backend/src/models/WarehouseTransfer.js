@@ -73,8 +73,7 @@ warehouseTransferSchema.pre('save', async function(next) {
   next();
 });
 
-// Indexes
-warehouseTransferSchema.index({ transferNumber: 1 });
+// Indexes - transferNumber already has unique index
 warehouseTransferSchema.index({ status: 1 });
 warehouseTransferSchema.index({ sourceWarehouse: 1 });
 warehouseTransferSchema.index({ destinationWarehouse: 1 });

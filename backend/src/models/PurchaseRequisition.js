@@ -84,8 +84,7 @@ purchaseRequisitionSchema.pre('save', async function(next) {
   next();
 });
 
-// Indexes
-purchaseRequisitionSchema.index({ prNumber: 1 });
+// Indexes - prNumber already has unique index
 purchaseRequisitionSchema.index({ status: 1 });
 purchaseRequisitionSchema.index({ requestedBy: 1 });
 

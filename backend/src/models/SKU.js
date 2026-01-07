@@ -82,8 +82,7 @@ const skuSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-skuSchema.index({ skuCode: 1 });
+// Index for faster queries - skuCode already has unique index, just add others
 skuSchema.index({ category: 1 });
 skuSchema.index({ defaultWarehouse: 1 });
 

@@ -79,9 +79,6 @@ stockLedgerSchema.statics.getCurrentStock = async function(skuId, warehouseId) {
 
 // Indexes for better query performance
 stockLedgerSchema.index({ sku: 1, warehouse: 1 });
-stockLedgerSchema.index({ movementType: 1 });
 stockLedgerSchema.index({ referenceType: 1, referenceId: 1 });
-stockLedgerSchema.index({ transactionDate: -1 });
-stockLedgerSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('StockLedger', stockLedgerSchema);

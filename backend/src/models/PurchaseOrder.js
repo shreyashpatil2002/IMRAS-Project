@@ -110,8 +110,7 @@ purchaseOrderSchema.pre('save', async function(next) {
   next();
 });
 
-// Indexes
-purchaseOrderSchema.index({ poNumber: 1 });
+// Indexes - poNumber already has unique index
 purchaseOrderSchema.index({ status: 1 });
 purchaseOrderSchema.index({ supplier: 1 });
 purchaseOrderSchema.index({ warehouse: 1 });

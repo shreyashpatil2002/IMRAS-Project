@@ -87,9 +87,7 @@ customerSchema.pre('save', async function(next) {
   next();
 });
 
-// Indexes
-customerSchema.index({ customerCode: 1 });
-customerSchema.index({ email: 1 });
+// Indexes - customerCode and email already have unique indexes
 customerSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Customer', customerSchema);

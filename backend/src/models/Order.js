@@ -145,8 +145,7 @@ orderSchema.pre('save', async function(next) {
   next();
 });
 
-// Indexes
-orderSchema.index({ orderNumber: 1 });
+// Indexes - orderNumber already has unique index
 orderSchema.index({ status: 1 });
 orderSchema.index({ customer: 1 });
 orderSchema.index({ warehouse: 1 });
