@@ -72,7 +72,9 @@ function App() {
         <Route path="/dashboard/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/dashboard/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
         <Route path="/dashboard/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-        <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />        <Route path="/dashboard/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />        <Route path="/dashboard/help" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />        
+        <Route path="/dashboard/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />        
+        <Route path="/dashboard/help" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
