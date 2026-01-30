@@ -56,9 +56,10 @@ const MyProfile = () => {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowChangePassword(false);
     } catch (error) {
+      console.error('Error changing password:', error);
       setMessage({ 
         type: 'error', 
-        text: error.response?.data?.message || 'Failed to change password' 
+        text: error.message || 'Failed to change password' 
       });
     } finally {
       setLoading(false);
