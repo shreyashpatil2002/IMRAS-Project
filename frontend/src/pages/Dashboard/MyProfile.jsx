@@ -59,7 +59,7 @@ const MyProfile = () => {
       console.error('Error changing password:', error);
       setMessage({ 
         type: 'error', 
-        text: error.message || 'Failed to change password' 
+        text: error.message ||  error.response?.data?.message || 'Failed to change password'
       });
     } finally {
       setLoading(false);
