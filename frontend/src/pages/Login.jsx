@@ -135,7 +135,7 @@ const Login = () => {
                   placeholder="name@company.com"
                   required
                   type="email"
-                  value={formData.email}
+                  value={formData.email} 
                   onChange={handleChange}
                 />
               </div>
