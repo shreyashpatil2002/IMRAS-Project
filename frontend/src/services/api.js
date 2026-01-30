@@ -69,8 +69,11 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       // Handle 401 - Unauthorized (token expired or invalid)
-      // But don't redirect if it's a login attempt (login endpoint handles its own errors)
-      if (error.response.status === 401 && !error.config.url.includes('/auth/login')) {
+      // But don't redirect if it's a login or password change attempt (these endpoints handle their own errors)
+      const excludedPaths = ['/auth/login', '/auth/change-password', '/auth/forgot-password', '/auth/reset-password'];
+      const shouldNotRedirect = excludedPaths.some(path => error.config.url.includes(path));
+      
+      if (error.response.status === 401 && !shouldNotRedirect) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
