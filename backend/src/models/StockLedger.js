@@ -77,8 +77,4 @@ stockLedgerSchema.statics.getCurrentStock = async function(skuId, warehouseId) {
   return latestEntry ? latestEntry.balanceQuantity : 0;
 };
 
-// Indexes for better query performance
-stockLedgerSchema.index({ sku: 1, warehouse: 1 });
-stockLedgerSchema.index({ referenceType: 1, referenceId: 1 });
-
 module.exports = mongoose.model('StockLedger', stockLedgerSchema);
